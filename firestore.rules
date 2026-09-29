@@ -1,0 +1,105 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function claims()   { return request.auth.token; }
+    function signedIn() { return request.auth != null && claims().centroId is string; }
+    function esAdmin()  { return signedIn() && claims().rol == 'admin'; }
+    function miCentro() { return claims().centroId; }
+
+    function puedeLeer(data) {
+      return signedIn() && (esAdmin() || data.centroId == miCentro());
+    }
+    // Un get() sobre un documento inexistente entrega resource == null; leer
+    // ese "no existe" no filtra datos, así que basta con estar autenticado.
+    function puedeLeerRecurso(recurso) {
+      return recurso == null ? signedIn() : puedeLeer(recurso.data);
+    }
+    function centroValido(nuevo) {
+      return signedIn() && (esAdmin() ? nuevo.centroId is string
+                                      : nuevo.centroId == miCentro());
+    }
+    function noMueveCentro() {
+      return request.resource.data.centroId == resource.data.centroId;
+    }
+
+    // ---------- Identidad: solo el Admin SDK escribe ----------
+    match /users/{uid} {
+      // Un profesional ve a sus colegas del mismo centro: la agenda compartida
+      // necesita nombrar a quién atiende. En una consulta de lista las rules se
+      // evalúan documento por documento, así que el cliente DEBE filtrar por
+      // centroId; AdminUsersPage sigue sin filtro porque entra por esAdmin().
+      allow read:  if esAdmin()
+                   || (request.auth != null && uid == request.auth.uid)
+                   || (signedIn() && resource != null && resource.data.centroId == miCentro());
+      allow write: if false;
+    }
+    match /usernames/{u}    { allow read, write: if false; }
+    match /counters/{c}     { allow read, write: if false; }
+    match /userSecrets/{uid} { allow read, write: if false; }
+    match /rateLimits/{id}   { allow read, write: if false; }
+    match /auditLogs/{id}   { allow read: if esAdmin(); allow write: if false; }
+
+    match /centros/{centroId} {
+      allow read:  if signedIn() && (esAdmin() || centroId == miCentro());
+      allow write: if false;
+    }
+
+    match /patientIds/{key} {
+      allow read:   if puedeLeerRecurso(resource);
+      allow create: if centroValido(request.resource.data)
+                    && key == request.resource.data.centroId + '_' + request.resource.data.cedula;
+      allow update, delete: if esAdmin();
+    }
+
+    match /patients/{patientId} {
+      allow read:   if puedeLeerRecurso(resource);
+      allow create: if centroValido(request.resource.data);
+      allow update: if puedeLeer(resource.data) && noMueveCentro();
+      allow delete: if esAdmin();
+
+      match /visits/{visitId} {
+        allow read:   if puedeLeerRecurso(resource);
+        allow create: if centroValido(request.resource.data)
+                      && request.resource.data.estado in ['draft', 'final'];
+        // Una atención finalizada es inmutable salvo para el admin
+        allow update: if puedeLeer(resource.data) && noMueveCentro()
+                      && (resource.data.estado != 'final' || esAdmin());
+        allow delete: if esAdmin();
+
+        match /detalle/{docId} {
+          allow read:   if puedeLeerRecurso(resource);
+          allow create: if centroValido(request.resource.data);
+          allow update: if puedeLeer(resource.data) && noMueveCentro();
+          allow delete: if esAdmin();
+        }
+      }
+
+      // Documentos generados: solo los crea el backend
+      match /prescriptions/{id} { allow read: if puedeLeerRecurso(resource); allow write: if false; }
+      match /certificates/{id}  { allow read: if puedeLeerRecurso(resource); allow write: if false; }
+      match /attachments/{id}   { allow read: if puedeLeerRecurso(resource); allow write: if false; }
+    }
+
+    // ---------- Agenda compartida del centro ----------
+    // "Todos pueden todo" dentro del centro: puedeLeer no compara uid, así que
+    // cualquier profesional edita o cancela la cita de un colega. El aislamiento
+    // sigue siendo por centroId, igual que patients.
+    match /appointments/{appointmentId} {
+      allow read:   if puedeLeerRecurso(resource);
+      allow create: if centroValido(request.resource.data);
+      allow update: if puedeLeer(resource.data) && noMueveCentro();
+      // Cancelar es un cambio de estado, no un delete: el borrado real queda
+      // solo para admin para no perder el historial de la agenda.
+      allow delete: if esAdmin();
+    }
+
+    // Collection group: el doctor DEBE incluir where('centroId','==',X)
+    match /{path=**}/visits/{visitId}   { allow read: if puedeLeerRecurso(resource); }
+    match /{path=**}/prescriptions/{id} { allow read: if puedeLeerRecurso(resource); }
+    match /{path=**}/certificates/{id}  { allow read: if puedeLeerRecurso(resource); }
+    match /{path=**}/attachments/{id}   { allow read: if puedeLeerRecurso(resource); }
+
+    match /{document=**} { allow read, write: if false; }
+  }
+}

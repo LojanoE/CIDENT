@@ -1,0 +1,34 @@
+{
+  "name": "cident",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "CIDENT — Historia clínica odontológica multi-centro (React + Firebase)",
+  "workspaces": [
+    "packages/shared",
+    "web",
+    "functions"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=web",
+    "build": "npm run build --workspace=packages/shared && npm run build --workspace=web && npm run build --workspace=functions",
+    "typecheck": "npm run typecheck --workspace=packages/shared && npm run typecheck --workspace=web && npm run typecheck --workspace=functions",
+    "lint": "eslint .",
+    "test": "npm run test --workspace=packages/shared",
+    "test:rules": "npm run test:rules --workspace=functions",
+    "emulators": "firebase emulators:start --only auth,firestore,functions,storage,hosting",
+    "seed": "node scripts/seed.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.13.0",
+    "eslint": "^9.13.0",
+    "eslint-plugin-react-hooks": "^5.0.0",
+    "eslint-plugin-react-refresh": "^0.4.14",
+    "globals": "^15.11.0",
+    "typescript": "^5.6.3",
+    "typescript-eslint": "^8.11.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

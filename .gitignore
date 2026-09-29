@@ -1,0 +1,52 @@
+# --- SECRETOS: nunca commitear ---
+**/FIRMA/*.p12
+**/FIRMA/*.pfx
+**/FIRMA/*.key
+**/FIRMA/CLAVE.txt
+**/FIRMA/FIRMA.png
+*serviceAccount*.json
+*-firebase-adminsdk-*.json
+.env
+.env.*
+!.env.example
+**/.secret.local
+
+# --- App antigua: referencia sin datos ni binarios ---
+ANTIGUO/.venv/
+ANTIGUO/**/__pycache__/
+ANTIGUO/data/
+ANTIGUO/backups/
+ANTIGUO/exports/
+ANTIGUO/dist/
+ANTIGUO/build/
+*.spec
+*.db
+*.db-journal
+
+# --- Node / build ---
+node_modules/
+dist/
+web/dist/
+functions/lib/
+functions/vendor/
+coverage/
+*.tsbuildinfo
+
+# --- Firebase ---
+.firebase/
+*-debug.log
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+emulator-data/
+
+# --- SO / editor ---
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# --- Playwright (artefactos generados) ---
+web/playwright-report/
+web/test-results/

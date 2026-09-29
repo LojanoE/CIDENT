@@ -1,0 +1,63 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Tokens de diseño. Cada valor es un triplete HSL sin envoltura `hsl()`;
+ * tailwind.config.js los consume como `hsl(var(--x))`.
+ *
+ * Regla de croma: la paleta clínica del odontograma (packages/shared) ocupa
+ * toda la rueda de tonos a saturación máxima y alimenta los PDF, así que no
+ * se puede tocar. El cromo de la interfaz se diferencia por croma bajo y
+ * valor oscuro; lo único vívido en pantalla deben ser los dientes.
+ *
+ * Dark mode (no implementado): añadir un bloque `.dark { ... }` que
+ * redefina estos mismos nombres. Los componentes no usan hexes ni colores
+ * de Tailwind por defecto, solo estos tokens.
+ */
+@layer base {
+  :root {
+    --bg: 45 20% 96%; /* #F7F6F3 */
+    --surface: 0 0% 100%;
+    --ink: 169.1 20% 10.8%; /* #16211F — 15,3:1 sobre --bg */
+    --ink-soft: 162 5% 38%; /* #5C6663 — 5,9:1 sobre blanco */
+    --accent: 178 54% 24%; /* #1C5E5C — 7,5:1 sobre blanco */
+    --accent-ink: 0 0% 100%;
+    --accent-wash: 172.5 21.1% 92.5%; /* #E8F0EF */
+    --danger: 7.4 60.9% 34.1%; /* #8C2F22 — 8,3:1 sobre blanco */
+    --warn: 37.5 74.3% 27.5%; /* #7A5312 — 6,8:1 sobre blanco */
+    --ok: 143 45% 22%; /* #1F5132 — 9,2:1 sobre blanco */
+    --line: 42.9 11.1% 87.6%; /* #E3E1DC — separadores; 1,3:1, NO para controles */
+    --input: 157.5 3.4% 54.5%; /* #878F8C — borde de campos, 3,3:1 (WCAG 1.4.11) */
+    --ring: 178 54% 24%;
+    --radius: 0.5rem;
+  }
+
+  * {
+    @apply border-line;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-bg font-sans text-sm text-ink antialiased;
+  }
+
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}

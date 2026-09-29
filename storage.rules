@@ -1,0 +1,21 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Subidas del cliente: una CF las valida, mueve y registra
+    match /uploads/{centroId}/{uid}/{fileName} {
+      allow write: if request.auth != null
+                   && request.auth.uid == uid
+                   && request.auth.token.centroId == centroId
+                   && request.resource.size < 25 * 1024 * 1024;
+      allow read: if false;
+    }
+    // Archivos definitivos: lectura solo del propio centro
+    match /centros/{centroId}/{allPaths=**} {
+      allow read:  if request.auth != null
+                   && (request.auth.token.rol == 'admin'
+                       || request.auth.token.centroId == centroId);
+      allow write: if false;   // solo Cloud Functions
+    }
+    match /{allPaths=**} { allow read, write: if false; }
+  }
+}
