@@ -36,9 +36,13 @@ export function useCitasDelRango(centroId: string | undefined, desde: string, ha
 }
 
 /**
- * Colegas del centro. La consulta coincide exactamente con el índice
- * `users(centroId, nombreCompleto)`: `activo` se filtra en el cliente para no
- * exigir un índice compuesto adicional.
+ * Profesionales agendables del centro. Los admin quedan fuera a propósito:
+ * administran centros y usuarios, no atienden pacientes, así que no deben
+ * aparecer como columna de la agenda ni como opción del formulario de cita.
+ *
+ * La consulta coincide exactamente con el índice `users(centroId,
+ * nombreCompleto)`: `activo` y `rol` se filtran en el cliente para no exigir un
+ * índice compuesto adicional.
  */
 export function useProfesionalesDelCentro(centroId: string | undefined) {
   const [profesionales, setProfesionales] = useState<Usuario[] | null>(null);
@@ -56,7 +60,11 @@ export function useProfesionalesDelCentro(centroId: string | undefined) {
     return onSnapshot(
       q,
       (snap) =>
-        setProfesionales(snap.docs.map((d) => d.data() as Usuario).filter((u) => u.activo)),
+        setProfesionales(
+          snap.docs
+            .map((d) => d.data() as Usuario)
+            .filter((u) => u.activo && u.rol === "profesional"),
+        ),
       (err) => setError(mensajeError(err)),
     );
   }, [centroId]);

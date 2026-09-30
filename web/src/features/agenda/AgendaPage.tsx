@@ -1,9 +1,10 @@
 import { fechaIsoSchema, ocupaFranja, rangoDeLaSemana, rangoDelDia, sumarDias, type Cita } from "@cident/shared";
 import { CalendarPlus, ChevronLeft, ChevronRight } from "lucide-react";
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../../app/AuthProvider";
 import { PageHeader } from "../../components/layout";
-import { Button, EmptyState, Input, Skeleton } from "../../components/ui";
+import { Button, EmptyState, Input, Skeleton, estiloBoton } from "../../components/ui";
 import { cn } from "../../lib/cn";
 import { useEsEscritorio } from "../../lib/useMediaQuery";
 import { CitaSheet, type CitaInicial } from "./CitaSheet";
@@ -165,10 +166,24 @@ export function AgendaPage() {
           <Skeleton className="h-16 w-full" />
         </div>
       ) : profesionales.length === 0 ? (
-        <EmptyState
-          title="No hay profesionales activos"
-          description="Pide a un administrador del centro que active al menos un usuario."
-        />
+        // Los admin no se agendan a sí mismos: un centro sin profesionales activos
+        // no tiene agenda posible, y quien puede resolverlo es justamente el admin.
+        sesion?.rol === "admin" ? (
+          <EmptyState
+            title="No hay profesionales activos"
+            description="Creá un usuario con rol Profesional para empezar a agendar."
+            action={
+              <Link to="/admin" className={estiloBoton()}>
+                Ir a Administración
+              </Link>
+            }
+          />
+        ) : (
+          <EmptyState
+            title="No hay profesionales activos"
+            description="Pide a un administrador del centro que active al menos un usuario."
+          />
+        )
       ) : vista === "semana" ? (
         <VistaSemana
           dia={dia}

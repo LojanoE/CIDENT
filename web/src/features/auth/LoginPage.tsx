@@ -31,7 +31,6 @@ export function LoginPage() {
     <main className="flex min-h-screen items-center justify-center bg-bg px-4 py-8">
       <div className="w-full max-w-sm">
         <div className="mb-6 flex flex-col items-center gap-3 text-center">
-          <img src="/logo-cident.png" alt="" className="h-14 w-auto object-contain" />
           <div>
             <h1 className="text-xl font-semibold">CIDENT</h1>
             <p className="text-sm text-ink-soft">Historia clínica odontológica</p>
