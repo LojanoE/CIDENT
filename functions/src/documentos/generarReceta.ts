@@ -28,7 +28,10 @@ export const generarReceta = onCall({ region: "southamerica-east1" }, async (req
     throw new HttpsError("not-found", "Paciente o visita no encontrados.");
   }
   const paciente = pacienteSnap.data() as Paciente;
-  const visita = visitaSnap.data() as { fecha: string; centroId: string };
+  const visita = visitaSnap.data() as { fecha: string; centroId: string; estado?: string };
+  if (visita.estado === "anulada") {
+    throw new HttpsError("failed-precondition", "La atención está anulada.");
+  }
 
   const esAdmin = contexto.claims.rol === "admin";
   if (!esAdmin && paciente.centroId !== contexto.claims.centroId) {

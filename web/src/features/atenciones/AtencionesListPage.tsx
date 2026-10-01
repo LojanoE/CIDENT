@@ -10,11 +10,9 @@ import { usePaciente } from "../pacientes/usePaciente";
 import { atencionesCollection } from "./atencionesApi";
 
 function EstadoAtencion({ atencion }: { atencion: Atencion }) {
-  return atencion.estado === "final" ? (
-    <Badge tone="ok">Finalizada</Badge>
-  ) : (
-    <Badge tone="warn">Borrador</Badge>
-  );
+  if (atencion.estado === "final") return <Badge tone="ok">Finalizada</Badge>;
+  if (atencion.estado === "anulada") return <Badge tone="danger">Anulada</Badge>;
+  return <Badge tone="warn">Borrador</Badge>;
 }
 
 const COLUMNAS: Columna<Atencion>[] = [

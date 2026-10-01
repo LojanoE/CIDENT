@@ -6,6 +6,12 @@ export interface ContextoAtencion {
   atencion: Atencion;
   /** Sustituye la atención en memoria tras guardarla (el layout refleja estado y título). */
   alActualizar: (atencion: Atencion) => void;
+  /**
+   * La Ficha registra aquí su guardado cuando tiene cambios sin guardar (y `null` cuando no),
+   * para que «Finalizar» desde cualquier pestaña los guarde antes. Devuelve `false` si el
+   * formulario no es válido y no se pudo guardar.
+   */
+  registrarGuardadoPendiente: (guardar: (() => Promise<boolean>) | null) => void;
 }
 
 export const AtencionContext = createContext<ContextoAtencion | null>(null);

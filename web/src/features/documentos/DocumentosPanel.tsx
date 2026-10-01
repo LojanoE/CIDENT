@@ -6,7 +6,6 @@ import { Download, FileText } from "lucide-react";
 import { useEffect, useId, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useParams } from "react-router-dom";
-import { useAuth } from "../../app/AuthProvider";
 import { Button, Card, CardBody, Field, Textarea, useToast } from "../../components/ui";
 import { mensajeError } from "../../lib/mensajeError";
 import { obtenerUrlDescarga } from "../adjuntos/adjuntosApi";
@@ -191,10 +190,9 @@ function ListaDocumentos<
 /** Pestaña «Documentos»: emite recetas y certificados, y lista lo ya emitido en esta atención. */
 export function DocumentosPanel() {
   const { patientId, visitId } = useParams<{ patientId: string; visitId: string }>();
-  const { sesion } = useAuth();
   const { atencion } = useAtencion();
   const centroId = atencion.centroId;
-  const soloLectura = atencion.estado === "final" && sesion?.rol !== "admin";
+  const soloLectura = atencion.estado !== "draft";
 
   const [recetas, setRecetas] = useState<Receta[]>([]);
   const [certificados, setCertificados] = useState<Certificado[]>([]);

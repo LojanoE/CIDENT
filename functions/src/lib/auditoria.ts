@@ -12,7 +12,9 @@ export type AccionAuditoria =
   | "receta_generada"
   | "certificado_generado"
   | "resumen_atencion_generado"
-  | "adjunto_subido";
+  | "adjunto_subido"
+  | "atencion_eliminada"
+  | "atencion_anulada";
 
 export interface RegistrarAuditoriaParams {
   accion: AccionAuditoria;

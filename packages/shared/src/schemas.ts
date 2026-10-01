@@ -106,6 +106,18 @@ export const generarResumenAtencionSchema = referenciaVisitaSchema;
 export type GenerarResumenAtencionInput = z.infer<typeof generarResumenAtencionSchema>;
 
 // ---------------------------------------------------------------------------
+// Ciclo de vida de la atención: eliminar un borrador / anular una finalizada
+// ---------------------------------------------------------------------------
+
+export const eliminarAtencionSchema = referenciaVisitaSchema;
+export type EliminarAtencionInput = z.infer<typeof eliminarAtencionSchema>;
+
+export const anularAtencionSchema = referenciaVisitaSchema.extend({
+  motivo: z.string().trim().min(5, "Indica el motivo (mínimo 5 caracteres).").max(500),
+});
+export type AnularAtencionInput = z.infer<typeof anularAtencionSchema>;
+
+// ---------------------------------------------------------------------------
 // Auth
 // ---------------------------------------------------------------------------
 

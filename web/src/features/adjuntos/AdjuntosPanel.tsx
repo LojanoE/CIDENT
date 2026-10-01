@@ -24,7 +24,7 @@ export function AdjuntosPanel() {
   const { atencion } = useAtencion();
   const toast = useToast();
   const centroId = atencion.centroId;
-  const soloLectura = atencion.estado === "final" && sesion?.rol !== "admin";
+  const soloLectura = atencion.estado !== "draft";
 
   const [adjuntos, setAdjuntos] = useState<Adjunto[] | null>(null);
   const [error, setError] = useState<string | null>(null);

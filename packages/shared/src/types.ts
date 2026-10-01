@@ -69,7 +69,8 @@ export interface Paciente {
 // Atenciones (visitas)
 // ---------------------------------------------------------------------------
 
-export type EstadoAtencion = "draft" | "final";
+/** `draft` se edita; `final` queda bloqueada hasta reabrirla; `anulada` es terminal (solo la anula un admin). */
+export type EstadoAtencion = "draft" | "final" | "anulada";
 
 export interface IndicadoresHigiene {
   placa: number;
@@ -102,6 +103,13 @@ export interface Atencion {
   createdBy: string;
   finalizedAt: string | null;
   finalizedBy: string | null;
+  /** Última vez que se guardó la ficha; ausente en atenciones anteriores a este campo. */
+  updatedAt?: string;
+  reabiertaAt?: string;
+  reabiertaBy?: string;
+  anuladaAt?: string;
+  anuladaBy?: string;
+  motivoAnulacion?: string;
 }
 
 // ---------------------------------------------------------------------------

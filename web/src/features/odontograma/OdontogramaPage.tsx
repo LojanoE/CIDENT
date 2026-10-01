@@ -31,14 +31,13 @@ function Dato({ etiqueta, valor }: { etiqueta: string; valor: number | string })
 export function OdontogramaPage() {
   const { patientId, visitId } = useParams<{ patientId: string; visitId: string }>();
   const { sesion } = useAuth();
-  const esAdmin = sesion?.rol === "admin";
   const escritorio = useEsEscritorio();
 
   const { atencion } = useAtencion();
   const [seleccion, setSeleccion] = useState<SeleccionOdontograma | null>(null);
   const [cuadranteElegido, setCuadranteElegido] = useState<number | null>(null);
 
-  const soloLectura = atencion.estado === "final" && !esAdmin;
+  const soloLectura = atencion.estado !== "draft";
 
   const odo = useOdontograma({
     patientId: patientId ?? "",

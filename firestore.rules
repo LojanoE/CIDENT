@@ -62,10 +62,21 @@ service cloud.firestore {
         allow read:   if puedeLeerRecurso(resource);
         allow create: if centroValido(request.resource.data)
                       && request.resource.data.estado in ['draft', 'final'];
-        // Una atención finalizada es inmutable salvo para el admin
+        // Borrador: se edita y puede finalizarse. Finalizada: solo se puede reabrir
+        // (final -> draft tocando únicamente los campos de estado), nunca editarla en
+        // sitio. 'anulada' solo la escribe el backend (anularAtencion), no el cliente.
         allow update: if puedeLeer(resource.data) && noMueveCentro()
-                      && (resource.data.estado != 'final' || esAdmin());
-        allow delete: if esAdmin();
+                      && (
+                        (resource.data.estado == 'draft'
+                          && request.resource.data.estado in ['draft', 'final'])
+                        || (resource.data.estado == 'final'
+                          && request.resource.data.estado == 'draft'
+                          && request.resource.data.diff(resource.data).affectedKeys()
+                               .hasOnly(['estado', 'finalizedAt', 'finalizedBy',
+                                         'reabiertaAt', 'reabiertaBy']))
+                      );
+        // El borrado pasa por la callable eliminarAtencion (limpia subcolecciones y agenda).
+        allow delete: if false;
 
         match /detalle/{docId} {
           allow read:   if puedeLeerRecurso(resource);

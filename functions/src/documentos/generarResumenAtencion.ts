@@ -34,6 +34,9 @@ export const generarResumenAtencion = onCall({ region: "southamerica-east1" }, a
   const paciente = pacienteSnap.data() as Paciente;
   const atencion = visitaSnap.data() as Atencion;
   const odontograma = odontogramaSnap.exists ? (odontogramaSnap.data() as OdontogramaDoc) : null;
+  if (atencion.estado === "anulada") {
+    throw new HttpsError("failed-precondition", "La atención está anulada.");
+  }
 
   const esAdmin = contexto.claims.rol === "admin";
   if (!esAdmin && paciente.centroId !== contexto.claims.centroId) {

@@ -217,11 +217,49 @@ describe("firestore.rules — aislamiento entre centros", () => {
     );
   });
 
-  it("admin sí puede modificar una atención finalizada", async () => {
+  it("ni el admin edita una atención finalizada en sitio: primero hay que reabrirla", async () => {
     const db = ctxAdmin().firestore();
-    await assertSucceeds(
+    await assertFails(
       updateDoc(doc(db, "patients/patientA/visits", "visitAFinal"), { motivo: "corrección administrativa" }),
     );
+  });
+
+  it("doctor A puede reabrir una atención finalizada de su centro", async () => {
+    const db = ctxDoctorA().firestore();
+    await assertSucceeds(
+      updateDoc(doc(db, "patients/patientA/visits", "visitAFinal"), {
+        estado: "draft",
+        finalizedAt: null,
+        finalizedBy: null,
+        reabiertaAt: "2026-10-01T10:00:00.000Z",
+        reabiertaBy: DOCTOR_A,
+      }),
+    );
+  });
+
+  it("al reabrir no se puede colar un cambio de contenido", async () => {
+    const db = ctxDoctorA().firestore();
+    await assertFails(
+      updateDoc(doc(db, "patients/patientA/visits", "visitAFinal"), { estado: "draft", motivo: "reescrito" }),
+    );
+  });
+
+  it("doctor B no puede reabrir una atención del centro A", async () => {
+    const db = ctxDoctorB().firestore();
+    await assertFails(
+      updateDoc(doc(db, "patients/patientA/visits", "visitAFinal"), { estado: "draft", finalizedAt: null }),
+    );
+  });
+
+  it("doctor A puede finalizar un borrador pero no anularlo desde el cliente", async () => {
+    const db = ctxDoctorA().firestore();
+    await assertFails(updateDoc(doc(db, "patients/patientA/visits", "visitA1"), { estado: "anulada" }));
+    await assertSucceeds(updateDoc(doc(db, "patients/patientA/visits", "visitA1"), { estado: "final" }));
+  });
+
+  it("ni el doctor ni el admin pueden borrar una atención desde el cliente", async () => {
+    await assertFails(deleteDoc(doc(ctxDoctorA().firestore(), "patients/patientA/visits", "visitA1")));
+    await assertFails(deleteDoc(doc(ctxAdmin().firestore(), "patients/patientA/visits", "visitA1")));
   });
 
   it("doctor A no puede eliminar un paciente (solo admin)", async () => {

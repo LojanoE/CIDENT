@@ -1,6 +1,6 @@
 import { atencionSchema, type Atencion, type AtencionInput } from "@cident/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertTriangle, Lock } from "lucide-react";
+import { Lock } from "lucide-react";
 import { useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
@@ -96,18 +96,18 @@ export function AtencionFormPage() {
   const ctx = useContext(AtencionContext);
   const existente = ctx?.atencion ?? null;
 
-  const esFinal = existente?.estado === "final";
-  const soloLectura = esFinal && sesion?.rol !== "admin";
+  // Solo un borrador se edita; para corregir una finalizada hay que reabrirla (barra de estado).
+  const soloLectura = existente !== null && existente.estado !== "draft";
 
-  const [guardando, setGuardando] = useState<"draft" | "final" | null>(null);
-  const [confirmando, setConfirmando] = useState(false);
-  const pendienteFinal = useRef<AtencionInput | null>(null);
+  const [guardando, setGuardando] = useState(false);
 
   const {
     register,
     handleSubmit,
     reset,
     control,
+    getValues,
+    trigger,
     formState: { errors, isDirty },
   } = useForm<AtencionInput>({
     resolver: zodResolver(atencionSchema),
@@ -123,12 +123,12 @@ export function AtencionFormPage() {
   const cpo = useWatch({ control, name: "cpo" });
   const totalCpo = (Number(cpo?.c) || 0) + (Number(cpo?.p) || 0) + (Number(cpo?.o) || 0);
 
-  const guardar = async (values: AtencionInput, estado: "draft" | "final") => {
+  const guardar = async (values: AtencionInput) => {
     if (!patientId || !sesion) return;
-    setGuardando(estado);
+    setGuardando(true);
     try {
       if (!existente) {
-        const nuevoId = await crearAtencion(patientId, sesion.centroId, sesion.uid, values, estado);
+        const nuevoId = await crearAtencion(patientId, sesion.centroId, sesion.uid, values);
         if (citaId) {
           try {
             await vincularCitaAAtencion(citaId, nuevoId, sesion.uid);
@@ -138,26 +138,35 @@ export function AtencionFormPage() {
           }
         }
         permitirSalida();
-        toast.ok(estado === "final" ? "Atención finalizada." : "Borrador guardado.");
+        toast.ok("Borrador guardado. Completa odontograma, documentos y adjuntos; cuando termines, pulsa «Finalizar atención».");
         navigate(`/pacientes/${patientId}/atenciones/${nuevoId}`, { replace: true });
       } else {
-        await actualizarAtencion(patientId, existente.visitId, values, estado, sesion.uid, esFinal);
+        await actualizarAtencion(patientId, existente.visitId, values);
         const actualizada = await obtenerAtencion(patientId, existente.visitId);
         if (actualizada) ctx?.alActualizar(actualizada);
-        toast.ok(estado === "final" ? "Atención finalizada." : "Borrador guardado.");
+        toast.ok("Cambios guardados.");
       }
     } catch (err) {
       toast.error(mensajeError(err));
     } finally {
-      setGuardando(null);
-      setConfirmando(false);
+      setGuardando(false);
     }
   };
 
-  const pedirConfirmacion = handleSubmit((values) => {
-    pendienteFinal.current = values;
-    setConfirmando(true);
-  });
+  // «Finalizar» (en el layout) guarda antes los cambios pendientes de esta Ficha.
+  const guardarPendiente = useRef<() => Promise<boolean>>(async () => true);
+  guardarPendiente.current = async () => {
+    if (!patientId || !existente || !(await trigger())) return false;
+    await actualizarAtencion(patientId, existente.visitId, getValues());
+    return true;
+  };
+  const registrar = ctx?.registrarGuardadoPendiente;
+  const hayPendiente = isDirty && !soloLectura;
+  useEffect(() => {
+    if (!registrar) return;
+    registrar(hayPendiente ? () => guardarPendiente.current() : null);
+    return () => registrar(null);
+  }, [registrar, hayPendiente]);
 
   return (
     <div className="max-w-3xl space-y-4">
@@ -166,13 +175,9 @@ export function AtencionFormPage() {
       {soloLectura && (
         <p className="flex items-start gap-2 rounded-md border border-line bg-surface p-3 text-sm text-ink-soft">
           <Lock aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
-          Esta atención está finalizada y no se puede modificar.
-        </p>
-      )}
-      {esFinal && !soloLectura && (
-        <p className="flex items-start gap-2 rounded-md border border-warn/30 bg-warn/10 p-3 text-sm text-warn">
-          <AlertTriangle aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
-          Esta atención está finalizada. Como administrador puedes corregirla; los cambios quedan auditados.
+          {existente?.estado === "anulada"
+            ? "Esta atención está anulada y es solo de lectura."
+            : "Esta atención está finalizada. Usa «Reabrir para editar» arriba para modificarla."}
         </p>
       )}
 
@@ -284,31 +289,12 @@ export function AtencionFormPage() {
         {!soloLectura && (
           <StickyActions>
             {isDirty && <span className="mr-auto text-13 text-ink-soft">Hay cambios sin guardar</span>}
-            <Button
-              type="button"
-              variant="secondary"
-              loading={guardando === "draft"}
-              disabled={guardando !== null}
-              onClick={handleSubmit((v) => guardar(v, "draft"))}
-            >
-              Guardar borrador
-            </Button>
-            <Button type="button" disabled={guardando !== null} onClick={pedirConfirmacion}>
-              Finalizar atención
+            <Button type="button" loading={guardando} onClick={handleSubmit(guardar)}>
+              {existente ? "Guardar cambios" : "Guardar y continuar"}
             </Button>
           </StickyActions>
         )}
       </form>
-
-      <ConfirmarDialog
-        open={confirmando}
-        title="¿Finalizar esta atención?"
-        description="Una vez finalizada, la atención queda bloqueada y solo un administrador podrá corregirla. Revisa los datos antes de continuar."
-        confirmLabel="Sí, finalizar"
-        loading={guardando === "final"}
-        onCancel={() => setConfirmando(false)}
-        onConfirm={() => pendienteFinal.current && guardar(pendienteFinal.current, "final")}
-      />
 
       <ConfirmarDialog
         open={blocker.state === "blocked"}

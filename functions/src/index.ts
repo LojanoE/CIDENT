@@ -13,6 +13,9 @@ export { actualizarUsuario } from "./auth/actualizarUsuario.js";
 
 export { actualizarCentro } from "./admin/actualizarCentro.js";
 
+export { eliminarAtencion } from "./atenciones/eliminarAtencion.js";
+export { anularAtencion } from "./atenciones/anularAtencion.js";
+
 export { generarReceta } from "./documentos/generarReceta.js";
 export { generarCertificado } from "./documentos/generarCertificado.js";
 export { generarResumenAtencion } from "./documentos/generarResumenAtencion.js";
