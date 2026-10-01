@@ -43,6 +43,12 @@ service cloud.firestore {
     match /centros/{centroId} {
       allow read:  if signedIn() && (esAdmin() || centroId == miCentro());
       allow write: if false;
+
+      // Catálogo de tratamientos con precios propios del centro; lo escribe solo el backend.
+      match /tratamientos/{id} {
+        allow read:  if signedIn() && (esAdmin() || centroId == miCentro());
+        allow write: if false;
+      }
     }
 
     match /patientIds/{key} {
@@ -90,6 +96,17 @@ service cloud.firestore {
       match /prescriptions/{id} { allow read: if puedeLeerRecurso(resource); allow write: if false; }
       match /certificates/{id}  { allow read: if puedeLeerRecurso(resource); allow write: if false; }
       match /attachments/{id}   { allow read: if puedeLeerRecurso(resource); allow write: if false; }
+
+      // Presupuestos: los crea solo el backend. El cliente únicamente puede cambiar el estado
+      // (el paciente acepta o rechaza después, incluso con la atención ya finalizada).
+      match /budgets/{id} {
+        allow read: if puedeLeerRecurso(resource);
+        allow create, delete: if false;
+        allow update: if puedeLeer(resource.data) && noMueveCentro()
+                      && request.resource.data.diff(resource.data).affectedKeys()
+                           .hasOnly(['estado', 'estadoActualizadoAt', 'estadoActualizadoBy'])
+                      && request.resource.data.estado in ['pendiente', 'aceptado', 'rechazado'];
+      }
     }
 
     // ---------- Agenda compartida del centro ----------
@@ -110,6 +127,7 @@ service cloud.firestore {
     match /{path=**}/prescriptions/{id} { allow read: if puedeLeerRecurso(resource); }
     match /{path=**}/certificates/{id}  { allow read: if puedeLeerRecurso(resource); }
     match /{path=**}/attachments/{id}   { allow read: if puedeLeerRecurso(resource); }
+    match /{path=**}/budgets/{id}       { allow read: if puedeLeerRecurso(resource); }
 
     match /{document=**} { allow read, write: if false; }
   }

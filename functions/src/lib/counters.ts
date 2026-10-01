@@ -1,10 +1,11 @@
 import { getFirestore } from "firebase-admin/firestore";
 
-export type TipoDocumentoCodigo = "receta" | "certificado";
+export type TipoDocumentoCodigo = "receta" | "certificado" | "presupuesto";
 
 const PREFIJOS: Record<TipoDocumentoCodigo, string> = {
   receta: "PR",
   certificado: "CE",
+  presupuesto: "PS",
 };
 
 function formatearFecha(fecha: Date): string {

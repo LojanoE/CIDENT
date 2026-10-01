@@ -106,6 +106,40 @@ export const generarResumenAtencionSchema = referenciaVisitaSchema;
 export type GenerarResumenAtencionInput = z.infer<typeof generarResumenAtencionSchema>;
 
 // ---------------------------------------------------------------------------
+// Presupuestos de tratamientos
+// ---------------------------------------------------------------------------
+
+export const lineaPresupuestoSchema = z.object({
+  tratamiento: z.string().trim().min(1, "Indica el tratamiento.").max(120),
+  pieza: z
+    .string()
+    .trim()
+    .max(20)
+    .nullable()
+    .optional()
+    .transform((v) => (v ? v : undefined)),
+  cantidad: z.coerce.number().int("Debe ser un entero.").min(1, "Mínimo 1.").max(999),
+  precioUnitario: z.coerce
+    .number()
+    .min(0, "No puede ser negativo.")
+    .max(1_000_000)
+    .refine((v) => Math.abs(v * 100 - Math.round(v * 100)) < 1e-6, "Máximo 2 decimales."),
+});
+
+export const presupuestoSchema = z.object({
+  lineas: z.array(lineaPresupuestoSchema).min(1, "Agrega al menos un tratamiento.").max(50),
+  descuentoPorcentaje: z.coerce.number().min(0).max(100).default(0),
+  ivaPorcentaje: z.coerce.number().min(0).max(100).default(0),
+  validezDias: z.coerce.number().int().min(1).max(365).default(30),
+  observaciones: z.string().trim().max(1000).default(""),
+});
+export type PresupuestoInput = z.input<typeof presupuestoSchema>;
+export type PresupuestoDatos = z.output<typeof presupuestoSchema>;
+
+export const generarPresupuestoSchema = presupuestoSchema.merge(referenciaVisitaSchema);
+export type GenerarPresupuestoInput = z.input<typeof generarPresupuestoSchema>;
+
+// ---------------------------------------------------------------------------
 // Ciclo de vida de la atención: eliminar un borrador / anular una finalizada
 // ---------------------------------------------------------------------------
 

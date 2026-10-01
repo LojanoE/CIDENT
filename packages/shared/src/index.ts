@@ -6,3 +6,4 @@ export * from "./edad.js";
 export * from "./schemas.js";
 export * from "./odontogramaDescripcion.js";
 export * from "./agenda.js";
+export * from "./presupuesto.js";

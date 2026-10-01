@@ -18,6 +18,7 @@ export { anularAtencion } from "./atenciones/anularAtencion.js";
 
 export { generarReceta } from "./documentos/generarReceta.js";
 export { generarCertificado } from "./documentos/generarCertificado.js";
+export { generarPresupuesto } from "./documentos/generarPresupuesto.js";
 export { generarResumenAtencion } from "./documentos/generarResumenAtencion.js";
 
 export { onAdjuntoSubido } from "./storage/onAdjuntoSubido.js";

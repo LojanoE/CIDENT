@@ -44,7 +44,7 @@ export const eliminarAtencion = onCall({ region: "southamerica-east1" }, async (
   }
 
   const subcolecciones = await Promise.all(
-    ["prescriptions", "certificates", "attachments"].map((sub) =>
+    ["prescriptions", "certificates", "budgets", "attachments"].map((sub) =>
       pacienteRef.collection(sub).where("visitId", "==", visitId).limit(1).get(),
     ),
   );

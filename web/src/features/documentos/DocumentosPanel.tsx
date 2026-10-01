@@ -1,20 +1,24 @@
-import type { Certificado, CertificadoInput, Receta, RecetaInput } from "@cident/shared";
-import { certificadoSchema, recetaSchema } from "@cident/shared";
+import type { Certificado, CertificadoInput, EstadoPresupuesto, Presupuesto, Receta, RecetaInput } from "@cident/shared";
+import { ESTADOS_PRESUPUESTO, certificadoSchema, recetaSchema } from "@cident/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { onSnapshot, query, where } from "firebase/firestore";
 import { Download, FileText } from "lucide-react";
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useState, type ReactNode } from "react";
 import { useForm } from "react-hook-form";
 import { useParams } from "react-router-dom";
-import { Button, Card, CardBody, Field, Textarea, useToast } from "../../components/ui";
+import { useAuth } from "../../app/AuthProvider";
+import { Badge, Button, Card, CardBody, Field, Select, Textarea, useToast, type TonoBadge } from "../../components/ui";
 import { mensajeError } from "../../lib/mensajeError";
 import { obtenerUrlDescarga } from "../adjuntos/adjuntosApi";
 import { useAtencion } from "../atenciones/useAtencion";
+import { PresupuestoForm } from "./PresupuestoForm";
 import {
+  actualizarEstadoPresupuesto,
   certificadosCollection,
   generarCertificado,
   generarReceta,
   generarResumenAtencion,
+  presupuestosCollection,
   recetasCollection,
 } from "./documentosApi";
 
@@ -129,16 +133,53 @@ function ResumenAtencionBoton({ patientId, visitId }: { patientId: string; visit
   );
 }
 
+const ETIQUETA_ESTADO: Record<EstadoPresupuesto, string> = {
+  pendiente: "Pendiente",
+  aceptado: "Aceptado",
+  rechazado: "Rechazado",
+};
+const TONO_ESTADO: Record<EstadoPresupuesto, TonoBadge> = { pendiente: "warn", aceptado: "ok", rechazado: "danger" };
+
+/** Estado del presupuesto: editable aunque la atención esté finalizada (el paciente decide después). */
+function EstadoDelPresupuesto({ presupuesto, editable }: { presupuesto: Presupuesto; editable: boolean }) {
+  const toast = useToast();
+  const { sesion } = useAuth();
+
+  if (!editable || !sesion) {
+    return <Badge tone={TONO_ESTADO[presupuesto.estado]}>{ETIQUETA_ESTADO[presupuesto.estado]}</Badge>;
+  }
+  return (
+    <Select
+      aria-label={`Estado de ${presupuesto.codigoUnico}`}
+      value={presupuesto.estado}
+      className="min-w-32"
+      onChange={(e) =>
+        actualizarEstadoPresupuesto(presupuesto.patientId, presupuesto.id, e.target.value as EstadoPresupuesto, sesion.uid).catch(
+          (err) => toast.error(mensajeError(err)),
+        )
+      }
+    >
+      {ESTADOS_PRESUPUESTO.map((e) => (
+        <option key={e} value={e}>
+          {ETIQUETA_ESTADO[e]}
+        </option>
+      ))}
+    </Select>
+  );
+}
+
 function ListaDocumentos<
   T extends { id: string; fecha: string; codigoUnico: string; archivo: { storagePath: string; nombre: string } },
 >({
   titulo,
   documentos,
   etiqueta,
+  acciones,
 }: {
   titulo: string;
   documentos: T[];
   etiqueta: (doc: T) => string;
+  acciones?: (doc: T) => ReactNode;
 }) {
   const toast = useToast();
   const idTitulo = useId();
@@ -169,16 +210,19 @@ function ListaDocumentos<
                   {doc.fecha} · {etiqueta(doc)}
                 </p>
               </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                aria-label={`Descargar ${doc.codigoUnico}`}
-                onClick={() => descargar(doc)}
-              >
-                <Download aria-hidden className="h-4 w-4" />
-                Descargar
-              </Button>
+              <div className="flex shrink-0 items-center gap-2">
+                {acciones?.(doc)}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  aria-label={`Descargar ${doc.codigoUnico}`}
+                  onClick={() => descargar(doc)}
+                >
+                  <Download aria-hidden className="h-4 w-4" />
+                  Descargar
+                </Button>
+              </div>
             </li>
           ))}
         </ul>
@@ -196,6 +240,7 @@ export function DocumentosPanel() {
 
   const [recetas, setRecetas] = useState<Receta[]>([]);
   const [certificados, setCertificados] = useState<Certificado[]>([]);
+  const [presupuestos, setPresupuestos] = useState<Presupuesto[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -229,6 +274,24 @@ export function DocumentosPanel() {
         const lista = snap.docs.map((d) => d.data() as Certificado);
         lista.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
         setCertificados(lista);
+      },
+      (err) => setError(mensajeError(err)),
+    );
+  }, [patientId, visitId, centroId]);
+
+  useEffect(() => {
+    if (!patientId || !visitId) return;
+    const q = query(
+      presupuestosCollection(patientId),
+      where("visitId", "==", visitId),
+      where("centroId", "==", centroId),
+    );
+    return onSnapshot(
+      q,
+      (snap) => {
+        const lista = snap.docs.map((d) => d.data() as Presupuesto);
+        lista.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+        setPresupuestos(lista);
       },
       (err) => setError(mensajeError(err)),
     );
@@ -270,6 +333,21 @@ export function DocumentosPanel() {
           </CardBody>
         </Card>
       </div>
+
+      <Card>
+        <CardBody className="space-y-4">
+          <h3 className="text-base font-semibold">Presupuesto</h3>
+          {!soloLectura && <PresupuestoForm patientId={patientId} visitId={visitId} centroId={centroId} />}
+          <ListaDocumentos
+            titulo="Presupuestos emitidos"
+            documentos={presupuestos}
+            etiqueta={(p) =>
+              `Total $ ${p.total.toFixed(2)} · ${p.lineas.length} ${p.lineas.length === 1 ? "tratamiento" : "tratamientos"}`
+            }
+            acciones={(p) => <EstadoDelPresupuesto presupuesto={p} editable={atencion.estado !== "anulada"} />}
+          />
+        </CardBody>
+      </Card>
 
       <Card>
         <CardBody className="flex flex-wrap items-center justify-between gap-3">

@@ -58,6 +58,14 @@
       ]
     },
     {
+      "collectionGroup": "budgets",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "centroId", "order": "ASCENDING" },
+        { "fieldPath": "fecha", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "attachments",
       "queryScope": "COLLECTION",
       "fields": [

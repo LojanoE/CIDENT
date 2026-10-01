@@ -11,6 +11,7 @@ export type AccionAuditoria =
   | "centro_actualizado"
   | "receta_generada"
   | "certificado_generado"
+  | "presupuesto_generado"
   | "resumen_atencion_generado"
   | "adjunto_subido"
   | "atencion_eliminada"

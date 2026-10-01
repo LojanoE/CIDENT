@@ -24,6 +24,8 @@ export interface Centro {
   piePdf: string;
   /** Ausente o `null`: los PDFs y la web usan el logo CIDENT por defecto. */
   logo?: LogoCentro | null;
+  /** Último % de IVA usado en un presupuesto; prellena el formulario. */
+  presupuestoIva?: number;
 }
 
 export interface Usuario {
@@ -217,6 +219,49 @@ export interface Certificado {
   archivo: ArchivoRef;
   emitidoPor: string;
   createdAt: string;
+}
+
+export const ESTADOS_PRESUPUESTO = ["pendiente", "aceptado", "rechazado"] as const;
+export type EstadoPresupuesto = (typeof ESTADOS_PRESUPUESTO)[number];
+
+export interface LineaPresupuesto {
+  tratamiento: string;
+  pieza?: string;
+  cantidad: number;
+  precioUnitario: number;
+  totalLinea: number;
+}
+
+export interface Presupuesto {
+  id: string;
+  centroId: string;
+  patientId: string;
+  visitId: string;
+  fecha: string;
+  codigoUnico: string;
+  lineas: LineaPresupuesto[];
+  subtotal: number;
+  descuentoPorcentaje: number;
+  descuento: number;
+  ivaPorcentaje: number;
+  iva: number;
+  total: number;
+  validezDias: number;
+  observaciones: string;
+  estado: EstadoPresupuesto;
+  estadoActualizadoAt?: string;
+  estadoActualizadoBy?: string;
+  archivo: ArchivoRef;
+  emitidoPor: string;
+  createdAt: string;
+}
+
+/** Tratamientos que el centro ya presupuestó, con su último precio (autocompletado). */
+export interface TratamientoCatalogo {
+  nombre: string;
+  precioUnitario: number;
+  usos: number;
+  updatedAt: string;
 }
 
 export interface Adjunto {

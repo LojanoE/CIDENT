@@ -114,6 +114,20 @@ beforeEach(async () => {
       fecha: "2026-09-01",
     });
 
+    await setDoc(doc(db, "patients/patientA/budgets", "presA1"), {
+      centroId: CENTRO_A,
+      patientId: "patientA",
+      visitId: "visitA1",
+      fecha: "2026-09-01",
+      total: 11500,
+      estado: "pendiente",
+    });
+    await setDoc(doc(db, "centros/centroA/tratamientos", "limpieza"), {
+      nombre: "Limpieza",
+      precioUnitario: 2500,
+      usos: 1,
+    });
+
     // La cita del centro A la agendó el colega, no DOCTOR_A: es justamente lo
     // que prueba el "todos pueden todo" dentro del centro.
     await setDoc(doc(db, "appointments", "citaA1"), {
@@ -460,6 +474,57 @@ describe("firestore.rules — agenda compartida dentro del centro", () => {
     });
     const db = ctxDoctorA().firestore();
     await assertFails(getDoc(doc(db, "userSecrets", DOCTOR_A2)));
+  });
+});
+
+describe("firestore.rules — presupuestos y catálogo de tratamientos", () => {
+  const presA1 = "patients/patientA/budgets";
+
+  it("doctor A lee un presupuesto de su centro pero no el de otro", async () => {
+    await assertSucceeds(getDoc(doc(ctxDoctorA().firestore(), presA1, "presA1")));
+    await assertFails(getDoc(doc(ctxDoctorB().firestore(), presA1, "presA1")));
+  });
+
+  it("el cliente no puede crear ni borrar presupuestos", async () => {
+    const db = ctxDoctorA().firestore();
+    await assertFails(
+      setDoc(doc(db, presA1, "nuevo"), { centroId: CENTRO_A, estado: "pendiente", total: 1 }),
+    );
+    await assertFails(deleteDoc(doc(db, presA1, "presA1")));
+    await assertFails(deleteDoc(doc(ctxAdmin().firestore(), presA1, "presA1")));
+  });
+
+  it("doctor A puede cambiar el estado de un presupuesto de su centro", async () => {
+    const db = ctxDoctorA().firestore();
+    await assertSucceeds(
+      updateDoc(doc(db, presA1, "presA1"), {
+        estado: "aceptado",
+        estadoActualizadoAt: "2026-09-05T10:00:00.000Z",
+        estadoActualizadoBy: DOCTOR_A,
+      }),
+    );
+  });
+
+  it("doctor A no puede tocar el total ni las líneas, ni poner un estado inválido", async () => {
+    const db = ctxDoctorA().firestore();
+    await assertFails(updateDoc(doc(db, presA1, "presA1"), { total: 1 }));
+    await assertFails(updateDoc(doc(db, presA1, "presA1"), { estado: "aceptado", total: 1 }));
+    await assertFails(updateDoc(doc(db, presA1, "presA1"), { estado: "inventado" }));
+  });
+
+  it("doctor B no puede cambiar el estado de un presupuesto del centro A", async () => {
+    await assertFails(updateDoc(doc(ctxDoctorB().firestore(), presA1, "presA1"), { estado: "rechazado" }));
+  });
+
+  it("el catálogo es legible solo por su centro y no se escribe desde el cliente", async () => {
+    await assertSucceeds(getDoc(doc(ctxDoctorA().firestore(), "centros/centroA/tratamientos", "limpieza")));
+    await assertFails(getDoc(doc(ctxDoctorB().firestore(), "centros/centroA/tratamientos", "limpieza")));
+    await assertFails(
+      setDoc(doc(ctxDoctorA().firestore(), "centros/centroA/tratamientos", "otro"), { nombre: "Otro" }),
+    );
+    await assertFails(
+      setDoc(doc(ctxAdmin().firestore(), "centros/centroA/tratamientos", "otro"), { nombre: "Otro" }),
+    );
   });
 });
 
