@@ -35,7 +35,7 @@ export function crearDocumento(): PDFKit.PDFDocument {
  * cual puede empezar el contenido del documento.
  *
  * `logo` es el logo propio del centro (ver `obtenerLogoBuffer`); si no tiene
- * uno configurado, se usa el logo CIDENT de los assets.
+ * uno configurado, se usa el logo Luna-Dental de los assets.
  */
 export function dibujarEncabezado(
   doc: PDFKit.PDFDocument,
@@ -49,7 +49,7 @@ export function dibujarEncabezado(
     // los centros tienen relaciones de aspecto arbitrarias y forzar ancho y
     // alto a la vez los deformaría.
     // Sin `valign`: pdfkit alinea arriba por defecto dentro de la caja de `fit`.
-    doc.image(logo ?? join(ASSETS_DIR, "CIDENT.png"), anchoPagina - cm(4.5), cm(1.5), {
+    doc.image(logo ?? join(ASSETS_DIR, "luna-dental.png"), anchoPagina - cm(4.5), cm(1.5), {
       fit: [cm(2.5), cm(2)],
       align: "right",
     });

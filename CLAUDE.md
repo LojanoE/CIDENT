@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+**Marca:** la plataforma/empresa proveedora se llama **Luna-Dental**. "CIDENT" es solo el nombre de *un* centro (el nombre del repo y del paquete `@cident/shared` son históricos). La UI muestra el nombre del centro (`centros/{centroId}.nombre`) dentro de la app y la marca Luna-Dental en el login y como firma pequeña.
+
 ## Comandos
 
 Monorepo con npm workspaces (`packages/shared`, `web`, `functions`), orquestado desde el `package.json` raíz.

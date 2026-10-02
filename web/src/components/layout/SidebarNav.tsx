@@ -2,11 +2,11 @@ import { LogOut, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import type { Sesion } from "../../app/AuthProvider";
 import { cn } from "../../lib/cn";
-import { itemsNavegacion } from "./navegacion";
+import { etiquetaRol, itemsNavegacion } from "./navegacion";
 
 interface SidebarNavProps {
   rol: Sesion["rol"] | undefined;
-  centroId: string | undefined;
+  nombreCentro: string | null;
   logoUrl: string;
   colapsado: boolean;
   onAlternar: () => void;
@@ -14,7 +14,7 @@ interface SidebarNavProps {
 }
 
 /** Navegación lateral de escritorio (md+). Colapsable a solo iconos. */
-export function SidebarNav({ rol, centroId, logoUrl, colapsado, onAlternar, onLogout }: SidebarNavProps) {
+export function SidebarNav({ rol, nombreCentro, logoUrl, colapsado, onAlternar, onLogout }: SidebarNavProps) {
   const items = itemsNavegacion(rol);
   const etiqueta = colapsado ? "sr-only" : "truncate";
 
@@ -29,10 +29,10 @@ export function SidebarNav({ rol, centroId, logoUrl, colapsado, onAlternar, onLo
         <img src={logoUrl} alt="Logo del centro" className="h-8 w-8 shrink-0 object-contain" />
         {!colapsado && (
           <div className="min-w-0">
-            <p className="text-sm font-semibold leading-tight">CIDENT</p>
-            <p className="truncate font-mono text-xs text-ink-soft">
-              {centroId} · {rol}
+            <p className="truncate text-sm font-semibold leading-tight" title={nombreCentro ?? undefined}>
+              {nombreCentro ?? " "}
             </p>
+            <p className="truncate text-xs text-ink-soft">{etiquetaRol(rol)}</p>
           </div>
         )}
       </div>
@@ -91,6 +91,12 @@ export function SidebarNav({ rol, centroId, logoUrl, colapsado, onAlternar, onLo
           )}
           <span className={etiqueta}>{colapsado ? "Expandir menú" : "Contraer menú"}</span>
         </button>
+        {!colapsado && (
+          <p className="flex items-center gap-1.5 px-3 pb-1 pt-2 text-[11px] text-ink-soft">
+            <img src="/luna-dental-logo.svg" alt="" aria-hidden className="h-3 w-3" />
+            con Luna-Dental
+          </p>
+        )}
       </div>
     </aside>
   );

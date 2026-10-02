@@ -9,6 +9,7 @@ import { Skeleton, estiloBoton } from "../../components/ui";
 import { PageHeader } from "../../components/layout";
 import { cn } from "../../lib/cn";
 import { appointmentsCollection } from "../agenda/agendaApi";
+import { useCentroActual } from "../centros/centrosApi";
 import { hoyLocal } from "../agenda/fechas";
 import { mensajeError } from "../../lib/mensajeError";
 
@@ -69,12 +70,13 @@ function useContadores(centroId: string | undefined) {
 export function DashboardPage() {
   const { sesion } = useAuth();
   const { contadores, error } = useContadores(sesion?.centroId);
+  const { nombre: nombreCentro } = useCentroActual(sesion?.centroId);
 
   return (
     <div className="mx-auto max-w-4xl">
       <PageHeader
         title="Inicio"
-        description={`Resumen del centro ${sesion?.centroId ?? ""}`}
+        description={nombreCentro ? `Resumen de ${nombreCentro}` : "Resumen del centro"}
         actions={
           <>
             <Link to="/pacientes" className={estiloBoton({ variant: "secondary" })}>

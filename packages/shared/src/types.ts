@@ -22,7 +22,7 @@ export interface Centro {
   direccion: string;
   telefono: string;
   piePdf: string;
-  /** Ausente o `null`: los PDFs y la web usan el logo CIDENT por defecto. */
+  /** Ausente o `null`: los PDFs y la web usan el logo Luna-Dental por defecto. */
   logo?: LogoCentro | null;
   /** Último % de IVA usado en un presupuesto; prellena el formulario. */
   presupuestoIva?: number;

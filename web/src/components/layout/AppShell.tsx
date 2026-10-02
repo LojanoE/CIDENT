@@ -2,8 +2,9 @@ import { LogOut } from "lucide-react";
 import { useState } from "react";
 import { Outlet } from "react-router-dom";
 import { useAuth } from "../../app/AuthProvider";
-import { useLogoCentroUrl } from "../../features/centros/centrosApi";
+import { useCentroActual } from "../../features/centros/centrosApi";
 import { MobileTabBar } from "./MobileTabBar";
+import { etiquetaRol } from "./navegacion";
 import { SidebarNav } from "./SidebarNav";
 
 const CLAVE_COLAPSADO = "cident.sidebar.colapsado";
@@ -27,7 +28,7 @@ function guardarColapsado(valor: boolean) {
 /** Marco de la app autenticada: sidebar en escritorio, barra superior + inferior en móvil. */
 export function AppShell() {
   const { sesion, logout } = useAuth();
-  const logoUrl = useLogoCentroUrl(sesion?.centroId);
+  const { nombre: nombreCentro, logoUrl } = useCentroActual(sesion?.centroId);
   const [colapsado, setColapsado] = useState(leerColapsado);
 
   function alternar() {
@@ -48,7 +49,7 @@ export function AppShell() {
 
       <SidebarNav
         rol={sesion?.rol}
-        centroId={sesion?.centroId}
+        nombreCentro={nombreCentro}
         logoUrl={logoUrl}
         colapsado={colapsado}
         onAlternar={alternar}
@@ -60,10 +61,10 @@ export function AppShell() {
           <div className="flex min-w-0 items-center gap-3">
             <img src={logoUrl} alt="Logo del centro" className="h-8 w-8 shrink-0 object-contain" />
             <div className="min-w-0">
-              <p className="text-sm font-semibold leading-tight">CIDENT</p>
-              <p className="truncate font-mono text-xs text-ink-soft">
-                {sesion?.centroId} · {sesion?.rol}
+              <p className="truncate text-sm font-semibold leading-tight" title={nombreCentro ?? undefined}>
+                {nombreCentro ?? " "}
               </p>
+              <p className="truncate text-xs text-ink-soft">{etiquetaRol(sesion?.rol)}</p>
             </div>
           </div>
           <button

@@ -4,7 +4,7 @@ import { getDownloadURL, ref } from "firebase/storage";
 import { useEffect, useState } from "react";
 import { db, storage } from "../../app/firebase";
 
-const LOGO_RESPALDO = "/logo-cident.png";
+export const LOGO_RESPALDO = "/logo-respaldo.png";
 
 export function useCentros(): Centro[] | null {
   const [centros, setCentros] = useState<Centro[] | null>(null);
@@ -19,29 +19,39 @@ export function useCentros(): Centro[] | null {
 }
 
 /**
- * URL del logo del centro. Si el centro no tiene logo propio, o la descarga
- * falla, cae al respaldo `logo-cident.png` servido por la propia app web.
+ * Nombre y logo del centro actual, con una sola suscripción en vivo. Si el
+ * centro no tiene logo propio, o la descarga falla, el logo cae al respaldo
+ * `logo-respaldo.png` (Luna-Dental) servido por la propia app web.
+ * `nombre` es `null` mientras carga.
  */
-export function useLogoCentroUrl(centroId: string | undefined): string {
-  const [url, setUrl] = useState<string>(LOGO_RESPALDO);
+export function useCentroActual(centroId: string | undefined): { nombre: string | null; logoUrl: string } {
+  const [logoUrl, setLogoUrl] = useState<string>(LOGO_RESPALDO);
+  const [nombre, setNombre] = useState<string | null>(null);
 
   useEffect(() => {
+    setNombre(null);
     if (!centroId) {
-      setUrl(LOGO_RESPALDO);
+      setLogoUrl(LOGO_RESPALDO);
       return;
     }
     return onSnapshot(doc(db, "centros", centroId), (snap) => {
       const centro = snap.data() as Centro | undefined;
+      setNombre(centro?.nombre || centroId);
       const storagePath = centro?.logo?.storagePath;
       if (!storagePath) {
-        setUrl(LOGO_RESPALDO);
+        setLogoUrl(LOGO_RESPALDO);
         return;
       }
       getDownloadURL(ref(storage, storagePath))
-        .then(setUrl)
-        .catch(() => setUrl(LOGO_RESPALDO));
+        .then(setLogoUrl)
+        .catch(() => setLogoUrl(LOGO_RESPALDO));
     });
   }, [centroId]);
 
-  return url;
+  return { nombre, logoUrl };
+}
+
+/** URL del logo del centro (ver `useCentroActual`). */
+export function useLogoCentroUrl(centroId: string | undefined): string {
+  return useCentroActual(centroId).logoUrl;
 }

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" role="img" aria-label="Luna creciente con un diente">
+  <defs>
+    <mask id="luna">
+      <rect width="400" height="400" fill="#fff"/>
+      <circle cx="240" cy="150" r="130" fill="#000"/>
+    </mask>
+  </defs>
+  <circle cx="200" cy="200" r="190" fill="#FFFFFF" opacity="0.55"/>
+  <circle cx="200" cy="200" r="140" fill="#FFFFFF" opacity="0.7"/>
+  <circle cx="190" cy="215" r="150" fill="#1C5E5C" mask="url(#luna)"/>
+  <path fill="#1C5E5C" d="M215 110c20-14 42 0 62-3 26-4 46 14 41 44-5 30-12 56-23 84-6 17-24 17-29-1-5-17-8-36-19-36s-14 19-19 36c-5 18-23 18-29 1-11-28-18-54-23-84-5-30 15-48 39-41z"/>
+  <circle cx="318" cy="84" r="5" fill="#1C5E5C" opacity="0.5"/>
+  <circle cx="90" cy="96" r="3.500" fill="#1C5E5C" opacity="0.4"/>
+  <circle cx="340" cy="300" r="4" fill="#1C5E5C" opacity="0.35"/>
+</svg>

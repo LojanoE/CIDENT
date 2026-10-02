@@ -24,3 +24,9 @@ export function itemsNavegacion(rol: Sesion["rol"] | undefined): ItemNavegacion[
   }
   return base;
 }
+
+export function etiquetaRol(rol: Sesion["rol"] | undefined): string {
+  if (rol === "admin") return "Administrador";
+  if (rol === "profesional") return "Profesional";
+  return "";
+}

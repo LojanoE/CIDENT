@@ -23,7 +23,7 @@ import {
   useToast,
 } from "../../components/ui";
 import { mensajeError } from "../../lib/mensajeError";
-import { useCentros, useLogoCentroUrl } from "../centros/centrosApi";
+import { LOGO_RESPALDO, useCentros, useLogoCentroUrl } from "../centros/centrosApi";
 
 const actualizarCentroCallable = httpsCallable<ActualizarCentroInput, { ok: boolean }>(
   functions,
@@ -180,7 +180,7 @@ function CentroForm({ centro }: { centro: Centro }) {
     }
   };
 
-  const vistaLogo = previewLocal ?? (quitarLogo ? "/logo-cident.png" : logoActualUrl);
+  const vistaLogo = previewLocal ?? (quitarLogo ? LOGO_RESPALDO : logoActualUrl);
   const hayLogoPendiente = logoNuevo !== null || quitarLogo;
 
   return (

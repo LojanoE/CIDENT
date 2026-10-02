@@ -225,7 +225,7 @@ export const actualizarCentroSchema = z.object({
     .nullable()
     .optional()
     .transform((v) => v ?? undefined),
-  /** `true` borra el logo del centro y vuelve al logo CIDENT por defecto. */
+  /** `true` borra el logo del centro y vuelve al logo Luna-Dental por defecto. */
   quitarLogo: z
     .boolean()
     .nullable()
