@@ -4,12 +4,16 @@ import type { Condicion, Zona } from "./types.js";
 // Piezas dentales (numeración FDI)
 // ---------------------------------------------------------------------------
 
-/** 32 piezas permanentes, en orden de dibujo (igual a `app.py:39`). */
+/**
+ * 32 piezas permanentes, en orden de dibujo, vistas de frente al paciente:
+ * 18→11 | 21→28 arriba y 48→41 | 31→38 abajo. (`app.py:39` dibujaba la arcada
+ * inferior como 38→31 | 41→48, con los cuadrantes 3 y 4 cruzados.)
+ */
 export const FDI_PERMANENTES: readonly number[] = [
   ...range(18, 10, -1),
   ...range(21, 29),
-  ...range(38, 30, -1),
-  ...range(41, 49),
+  ...range(48, 40, -1),
+  ...range(31, 39),
 ];
 
 /** 20 piezas temporales (dentición infantil). */

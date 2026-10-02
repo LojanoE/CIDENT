@@ -1,5 +1,36 @@
 import { describe, expect, it } from "vitest";
-import { arcadaDe, cuadranteDe, ladoMesialEnSvg, zonaDeLado } from "./odontograma.js";
+import {
+  arcadaDe,
+  cuadranteDe,
+  FDI_PERMANENTES,
+  FDI_TEMPORALES,
+  ladoMesialEnSvg,
+  zonaDeLado,
+} from "./odontograma.js";
+
+describe("secuencias de dibujo FDI", () => {
+  it("permanentes: 18→11 | 21→28 arriba y 48→41 | 31→38 abajo", () => {
+    expect(FDI_PERMANENTES.slice(0, 16)).toEqual([18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28]);
+    expect(FDI_PERMANENTES.slice(16)).toEqual([48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38]);
+  });
+
+  it("temporales: 55→51 | 61→65 arriba y 85→81 | 71→75 abajo", () => {
+    expect(FDI_TEMPORALES.slice(0, 10)).toEqual([55, 54, 53, 52, 51, 61, 62, 63, 64, 65]);
+    expect(FDI_TEMPORALES.slice(10)).toEqual([85, 84, 83, 82, 81, 71, 72, 73, 74, 75]);
+  });
+
+  it("el lado mesial de las piezas junto a la línea media mira hacia ella", () => {
+    for (const secuencia of [FDI_PERMANENTES, FDI_TEMPORALES]) {
+      const mitad = secuencia.length / 2;
+      for (const inicio of [0, mitad]) {
+        const izquierda = secuencia[inicio + mitad / 2 - 1]!;
+        const derecha = secuencia[inicio + mitad / 2]!;
+        expect(ladoMesialEnSvg(izquierda)).toBe("derecha");
+        expect(ladoMesialEnSvg(derecha)).toBe("izquierda");
+      }
+    }
+  });
+});
 
 describe("cuadranteDe", () => {
   it("identifica el cuadrante de piezas permanentes", () => {
