@@ -1,8 +1,10 @@
-import { LogOut } from "lucide-react";
+import { LogOut, WifiOff } from "lucide-react";
 import { useState } from "react";
 import { Outlet } from "react-router-dom";
 import { useAuth } from "../../app/AuthProvider";
+import { usePrecargaAgenda } from "../../features/agenda/useAgenda";
 import { useCentroActual } from "../../features/centros/centrosApi";
+import { useEnLinea } from "../../lib/useEnLinea";
 import { MobileTabBar } from "./MobileTabBar";
 import { etiquetaRol } from "./navegacion";
 import { SidebarNav } from "./SidebarNav";
@@ -30,6 +32,8 @@ export function AppShell() {
   const { sesion, logout } = useAuth();
   const { nombre: nombreCentro, logoUrl } = useCentroActual(sesion?.centroId);
   const [colapsado, setColapsado] = useState(leerColapsado);
+  const enLinea = useEnLinea();
+  usePrecargaAgenda(sesion?.centroId);
 
   function alternar() {
     setColapsado((prev) => {
@@ -76,6 +80,16 @@ export function AppShell() {
             <LogOut aria-hidden className="h-5 w-5" />
           </button>
         </header>
+
+        {!enLinea && (
+          <div
+            role="status"
+            className="flex items-center justify-center gap-2 bg-amber-100 px-4 py-1.5 text-xs font-medium text-amber-900"
+          >
+            <WifiOff aria-hidden className="h-4 w-4" />
+            Sin conexión — mostrando la agenda guardada
+          </div>
+        )}
 
         <main
           id="contenido"

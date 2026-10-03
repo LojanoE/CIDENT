@@ -1,9 +1,10 @@
-import type { Cita, Usuario } from "@cident/shared";
+import { rangoDelDia, sumarDias, type Cita, type Usuario } from "@cident/shared";
 import { collection, onSnapshot, orderBy, query, where } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { db } from "../../app/firebase";
 import { mensajeError } from "../../lib/mensajeError";
 import { appointmentsCollection } from "./agendaApi";
+import { hoyLocal } from "./fechas";
 
 /**
  * Citas del centro con `inicio` en [desde, hasta). Una sola consulta por rango
@@ -33,6 +34,26 @@ export function useCitasDelRango(centroId: string | undefined, desde: string, ha
   }, [centroId, desde, hasta]);
 
   return { citas, error };
+}
+
+/**
+ * Mantiene en la caché local (IndexedDB) las citas desde 7 días atrás hasta 30
+ * adelante, para poder consultar la agenda sin conexión aunque el usuario no
+ * haya navegado a esas semanas. No expone datos: solo mantiene la escucha.
+ */
+export function usePrecargaAgenda(centroId: string | undefined) {
+  useEffect(() => {
+    if (!centroId) return;
+    const hoy = hoyLocal();
+    const q = query(
+      appointmentsCollection(),
+      where("centroId", "==", centroId),
+      where("inicio", ">=", rangoDelDia(sumarDias(hoy, -7)).inicio),
+      where("inicio", "<", rangoDelDia(sumarDias(hoy, 30)).inicio),
+      orderBy("inicio"),
+    );
+    return onSnapshot(q, () => {}, () => {});
+  }, [centroId]);
 }
 
 /**

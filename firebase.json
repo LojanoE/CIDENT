@@ -24,6 +24,12 @@
   "hosting": {
     "public": "web/dist",
     "ignore": ["ANTIGUO/**", "firebase.json", "**/.*", "**/node_modules/**"],
+    "headers": [
+      {
+        "source": "/@(sw.js|workbox-*.js|index.html|manifest.webmanifest|registerSW.js)",
+        "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+      }
+    ],
     "rewrites": [
       {
         "source": "**",

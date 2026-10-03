@@ -36,6 +36,7 @@ import {
 } from "../../components/ui";
 import { cn } from "../../lib/cn";
 import { mensajeError } from "../../lib/mensajeError";
+import { useEnLinea } from "../../lib/useEnLinea";
 import { pacientesCollection } from "../pacientes/pacientesApi";
 import { actualizarCita, cancelarCita, crearCita } from "./agendaApi";
 import { ETIQUETA_ESTADO } from "./estados";
@@ -86,6 +87,7 @@ function duracionInicial(cita: Cita | null): string {
 
 function FormularioCita({ onClose, cita, inicial, profesionales }: CitaSheetProps) {
   const { sesion } = useAuth();
+  const enLinea = useEnLinea();
   const toast = useToast();
   const editando = cita !== null;
 
@@ -263,7 +265,7 @@ function FormularioCita({ onClose, cita, inicial, profesionales }: CitaSheetProp
             ) : (
               <span />
             )}
-            <Button type="submit" form="form-cita" loading={isSubmitting}>
+            <Button type="submit" form="form-cita" loading={isSubmitting} disabled={!enLinea}>
               {editando ? "Guardar cambios" : "Agendar cita"}
             </Button>
           </div>

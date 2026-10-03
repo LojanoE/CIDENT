@@ -6,6 +6,7 @@ import { useAuth } from "../../app/AuthProvider";
 import { PageHeader } from "../../components/layout";
 import { Button, EmptyState, Input, Skeleton, estiloBoton } from "../../components/ui";
 import { cn } from "../../lib/cn";
+import { useEnLinea } from "../../lib/useEnLinea";
 import { useEsEscritorio } from "../../lib/useMediaQuery";
 import { CitaSheet, type CitaInicial } from "./CitaSheet";
 import { SelectorProfesional } from "./SelectorProfesional";
@@ -24,6 +25,7 @@ interface EstadoSheet {
 export function AgendaPage() {
   const { sesion } = useAuth();
   const esEscritorio = useEsEscritorio();
+  const enLinea = useEnLinea();
   const hoy = useMemo(hoyLocal, []);
 
   const [vistaElegida, setVistaElegida] = useState<Vista>("dia");
@@ -82,7 +84,7 @@ export function AgendaPage() {
         title="Agenda"
         description="Las citas se comparten entre todos los profesionales de tu centro."
         actions={
-          <Button onClick={() => abrirNueva()} disabled={!profesionales || profesionales.length === 0}>
+          <Button onClick={() => abrirNueva()} disabled={!enLinea || !profesionales || profesionales.length === 0}>
             <CalendarPlus aria-hidden className="h-4 w-4" />
             Nueva cita
           </Button>
