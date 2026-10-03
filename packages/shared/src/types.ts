@@ -251,8 +251,65 @@ export interface Presupuesto {
   estado: EstadoPresupuesto;
   estadoActualizadoAt?: string;
   estadoActualizadoBy?: string;
+  /** Suma de los pagos vigentes; la mantiene el backend. Saldo = total − pagado. */
+  pagado?: number;
   archivo: ArchivoRef;
   emitidoPor: string;
+  createdAt: string;
+}
+
+// ---------------------------------------------------------------------------
+// Contabilidad: pagos de pacientes y gastos del centro
+// ---------------------------------------------------------------------------
+
+export const FORMAS_PAGO = ["efectivo", "transferencia", "tarjeta", "otro"] as const;
+export type FormaPago = (typeof FORMAS_PAGO)[number];
+
+export const CATEGORIAS_GASTO = ["insumos", "alquiler", "servicios", "sueldos", "laboratorio", "otros"] as const;
+export type CategoriaGasto = (typeof CATEGORIAS_GASTO)[number];
+
+/** Un movimiento anulado se conserva pero no suma en ningún total. */
+export const ESTADOS_MOVIMIENTO = ["vigente", "anulado"] as const;
+export type EstadoMovimiento = (typeof ESTADOS_MOVIMIENTO)[number];
+
+export interface Pago {
+  id: string;
+  centroId: string;
+  patientId: string;
+  budgetId?: string;
+  presupuestoCodigo?: string;
+  concepto: string;
+  fecha: string;
+  monto: number;
+  formaPago: FormaPago;
+  referencia?: string;
+  /** Profesional al que se atribuye el ingreso. */
+  profesionalUid: string;
+  codigoUnico: string;
+  /** Saldo del presupuesto tras este pago (solo si está ligado a uno). */
+  saldoDespues?: number;
+  archivo: ArchivoRef;
+  estado: EstadoMovimiento;
+  motivoAnulacion?: string;
+  anuladoAt?: string;
+  anuladoBy?: string;
+  registradoPor: string;
+  createdAt: string;
+}
+
+export interface Gasto {
+  id: string;
+  centroId: string;
+  fecha: string;
+  monto: number;
+  categoria: CategoriaGasto;
+  descripcion: string;
+  formaPago: FormaPago;
+  estado: EstadoMovimiento;
+  motivoAnulacion?: string;
+  anuladoAt?: string;
+  anuladoBy?: string;
+  registradoPor: string;
   createdAt: string;
 }
 

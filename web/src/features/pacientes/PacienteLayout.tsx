@@ -1,5 +1,5 @@
 import { calcularEdad, type Paciente } from "@cident/shared";
-import { AlertTriangle, ChevronLeft, ClipboardList, Plus, UserRound } from "lucide-react";
+import { AlertTriangle, ChevronLeft, ClipboardList, Plus, UserRound, Wallet } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Link, Outlet, useMatch, useParams } from "react-router-dom";
 import { PageHeader } from "../../components/layout";
@@ -111,6 +111,11 @@ export function PacienteLayout() {
               label: "Atenciones",
               end: true,
               icon: <ClipboardList aria-hidden className="h-4 w-4" />,
+            },
+            {
+              to: `/pacientes/${paciente.patientId}/pagos`,
+              label: "Pagos",
+              icon: <Wallet aria-hidden className="h-4 w-4" />,
             },
           ]}
         />

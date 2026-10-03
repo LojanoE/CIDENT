@@ -5,7 +5,7 @@ import { onSnapshot, query, where } from "firebase/firestore";
 import { Download, FileText } from "lucide-react";
 import { useEffect, useId, useState, type ReactNode } from "react";
 import { useForm } from "react-hook-form";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { useAuth } from "../../app/AuthProvider";
 import { Badge, Button, Card, CardBody, Field, Select, Textarea, useToast, type TonoBadge } from "../../components/ui";
 import { mensajeError } from "../../lib/mensajeError";
@@ -145,8 +145,19 @@ function EstadoDelPresupuesto({ presupuesto, editable }: { presupuesto: Presupue
   const toast = useToast();
   const { sesion } = useAuth();
 
-  if (!editable || !sesion) {
-    return <Badge tone={TONO_ESTADO[presupuesto.estado]}>{ETIQUETA_ESTADO[presupuesto.estado]}</Badge>;
+  const pagado = presupuesto.pagado ?? 0;
+  // Con cobros registrados el estado queda fijo (también lo exigen las rules): hay que anular los pagos primero.
+  if (!editable || !sesion || pagado > 0) {
+    return (
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <Badge tone={TONO_ESTADO[presupuesto.estado]}>{ETIQUETA_ESTADO[presupuesto.estado]}</Badge>
+        {presupuesto.estado === "aceptado" && (
+          <Link to={`/pacientes/${presupuesto.patientId}/pagos`} className="text-13 text-accent hover:underline">
+            Pagado $ {pagado.toFixed(2)} · Saldo $ {(presupuesto.total - pagado).toFixed(2)}
+          </Link>
+        )}
+      </div>
+    );
   }
   return (
     <Select

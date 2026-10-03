@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CONDICIONES, ESTADOS_CITA, ZONAS } from "./types.js";
+import { CATEGORIAS_GASTO, CONDICIONES, ESTADOS_CITA, FORMAS_PAGO, ZONAS } from "./types.js";
 
 export const cedulaSchema = z
   .string()
@@ -138,6 +138,67 @@ export type PresupuestoDatos = z.output<typeof presupuestoSchema>;
 
 export const generarPresupuestoSchema = presupuestoSchema.merge(referenciaVisitaSchema);
 export type GenerarPresupuestoInput = z.input<typeof generarPresupuestoSchema>;
+
+// ---------------------------------------------------------------------------
+// Contabilidad: pagos y gastos
+// ---------------------------------------------------------------------------
+
+const montoSchema = z.coerce
+  .number({ invalid_type_error: "Indica el monto." })
+  .gt(0, "El monto debe ser mayor que 0.")
+  .max(1_000_000)
+  .refine((v) => Math.abs(v * 100 - Math.round(v * 100)) < 1e-6, "Máximo 2 decimales.");
+
+const textoOpcional = (max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max)
+    .nullable()
+    .optional()
+    .transform((v) => (v ? v : undefined));
+
+const motivoSchema = z.string().trim().min(5, "Indica el motivo (mínimo 5 caracteres).").max(500);
+
+export const registrarPagoSchema = z
+  .object({
+    patientId: z.string().trim().min(1),
+    budgetId: textoOpcional(100),
+    concepto: textoOpcional(200),
+    monto: montoSchema,
+    formaPago: z.enum(FORMAS_PAGO),
+    fecha: fechaIsoSchema,
+    referencia: textoOpcional(100),
+    profesionalUid: textoOpcional(128),
+  })
+  .superRefine((v, ctx) => {
+    if (!v.budgetId && !v.concepto) {
+      ctx.addIssue({ code: "custom", path: ["concepto"], message: "Indica el concepto del pago." });
+    }
+  });
+export type RegistrarPagoInput = z.input<typeof registrarPagoSchema>;
+
+export const anularPagoSchema = z.object({
+  patientId: z.string().trim().min(1),
+  pagoId: z.string().trim().min(1),
+  motivo: motivoSchema,
+});
+export type AnularPagoInput = z.infer<typeof anularPagoSchema>;
+
+export const registrarGastoSchema = z.object({
+  fecha: fechaIsoSchema,
+  monto: montoSchema,
+  categoria: z.enum(CATEGORIAS_GASTO),
+  descripcion: z.string().trim().min(1, "Describe el gasto.").max(300),
+  formaPago: z.enum(FORMAS_PAGO),
+});
+export type RegistrarGastoInput = z.input<typeof registrarGastoSchema>;
+
+export const anularGastoSchema = z.object({
+  gastoId: z.string().trim().min(1),
+  motivo: motivoSchema,
+});
+export type AnularGastoInput = z.infer<typeof anularGastoSchema>;
 
 // ---------------------------------------------------------------------------
 // Ciclo de vida de la atención: eliminar un borrador / anular una finalizada

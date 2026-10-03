@@ -12,8 +12,8 @@ export interface TotalesPresupuesto {
   total: number;
 }
 
-const aCentavos = (v: number) => Math.round(v * 100);
-const deCentavos = (c: number) => c / 100;
+export const aCentavos = (v: number) => Math.round(v * 100);
+export const deCentavos = (c: number) => c / 100;
 
 /**
  * Calcula los totales de un presupuesto en centavos enteros (sin deriva de coma

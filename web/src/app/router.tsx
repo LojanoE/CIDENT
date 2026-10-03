@@ -39,6 +39,12 @@ export const router = createBrowserRouter([
             children: [
               { index: true, element: <PacienteDetailPage /> },
               {
+                path: "pagos",
+                lazy: async () => ({
+                  Component: (await import("../features/pagos/PagosPacientePage")).PagosPacientePage,
+                }),
+              },
+              {
                 path: "atenciones",
                 children: [
                   { index: true, element: <AtencionesListPage /> },
@@ -78,6 +84,12 @@ export const router = createBrowserRouter([
         path: "agenda",
         lazy: async () => ({
           Component: (await import("../features/agenda/AgendaPage")).AgendaPage,
+        }),
+      },
+      {
+        path: "contabilidad",
+        lazy: async () => ({
+          Component: (await import("../features/contabilidad/ContabilidadPage")).ContabilidadPage,
         }),
       },
       {

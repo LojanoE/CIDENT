@@ -7,3 +7,4 @@ export * from "./schemas.js";
 export * from "./odontogramaDescripcion.js";
 export * from "./agenda.js";
 export * from "./presupuesto.js";
+export * from "./contabilidad.js";

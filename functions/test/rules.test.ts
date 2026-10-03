@@ -122,6 +122,28 @@ beforeEach(async () => {
       total: 11500,
       estado: "pendiente",
     });
+    await setDoc(doc(db, "patients/patientA/budgets", "presA2"), {
+      centroId: CENTRO_A,
+      patientId: "patientA",
+      fecha: "2026-09-01",
+      total: 100,
+      pagado: 50,
+      estado: "aceptado",
+    });
+    await setDoc(doc(db, "patients/patientA/payments", "pagoA1"), {
+      centroId: CENTRO_A,
+      patientId: "patientA",
+      budgetId: "presA2",
+      fecha: "2026-09-03",
+      monto: 50,
+      estado: "vigente",
+    });
+    await setDoc(doc(db, "centros/centroA/gastos", "gastoA1"), {
+      centroId: CENTRO_A,
+      fecha: "2026-09-03",
+      monto: 20,
+      estado: "vigente",
+    });
     await setDoc(doc(db, "centros/centroA/tratamientos", "limpieza"), {
       nombre: "Limpieza",
       precioUnitario: 2500,
@@ -525,6 +547,51 @@ describe("firestore.rules — presupuestos y catálogo de tratamientos", () => {
     await assertFails(
       setDoc(doc(ctxAdmin().firestore(), "centros/centroA/tratamientos", "otro"), { nombre: "Otro" }),
     );
+  });
+});
+
+describe("firestore.rules — contabilidad (pagos y gastos)", () => {
+  const pagos = "patients/patientA/payments";
+
+  it("doctor A lee un pago de su centro pero no el de otro", async () => {
+    await assertSucceeds(getDoc(doc(ctxDoctorA().firestore(), pagos, "pagoA1")));
+    await assertFails(getDoc(doc(ctxDoctorB().firestore(), pagos, "pagoA1")));
+  });
+
+  it("el cliente no puede crear, modificar ni borrar pagos (ni siquiera un admin)", async () => {
+    for (const db of [ctxDoctorA().firestore(), ctxAdmin().firestore()]) {
+      await assertFails(setDoc(doc(db, pagos, "nuevo"), { centroId: CENTRO_A, monto: 1, estado: "vigente" }));
+      await assertFails(updateDoc(doc(db, pagos, "pagoA1"), { estado: "anulado" }));
+      await assertFails(deleteDoc(doc(db, pagos, "pagoA1")));
+    }
+  });
+
+  it("la consulta de pagos por collection group exige filtrar por el centro propio", async () => {
+    const db = ctxDoctorA().firestore();
+    await assertSucceeds(getDocs(query(collectionGroup(db, "payments"), where("centroId", "==", CENTRO_A))));
+    await assertFails(getDocs(query(collectionGroup(db, "payments"), where("centroId", "==", CENTRO_B))));
+    await assertFails(getDocs(collectionGroup(db, "payments")));
+  });
+
+  it("los gastos son legibles solo por su centro y no se escriben desde el cliente", async () => {
+    const gastos = "centros/centroA/gastos";
+    await assertSucceeds(getDoc(doc(ctxDoctorA().firestore(), gastos, "gastoA1")));
+    await assertFails(getDoc(doc(ctxDoctorB().firestore(), gastos, "gastoA1")));
+    await assertFails(setDoc(doc(ctxDoctorA().firestore(), gastos, "nuevo"), { monto: 1 }));
+    await assertFails(updateDoc(doc(ctxAdmin().firestore(), gastos, "gastoA1"), { estado: "anulado" }));
+    await assertFails(deleteDoc(doc(ctxDoctorA().firestore(), gastos, "gastoA1")));
+  });
+
+  it("un presupuesto con pagos no puede salir de 'aceptado'", async () => {
+    const db = ctxDoctorA().firestore();
+    const presA2 = doc(db, "patients/patientA/budgets", "presA2");
+    await assertFails(updateDoc(presA2, { estado: "rechazado" }));
+    await assertFails(updateDoc(presA2, { estado: "pendiente" }));
+    await assertSucceeds(updateDoc(presA2, { estado: "aceptado" }));
+  });
+
+  it("el cliente no puede alterar el acumulado 'pagado' de un presupuesto", async () => {
+    await assertFails(updateDoc(doc(ctxDoctorA().firestore(), "patients/patientA/budgets", "presA2"), { pagado: 0 }));
   });
 });
 

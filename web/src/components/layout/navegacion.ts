@@ -1,4 +1,4 @@
-import { Building2, CalendarDays, Home, ShieldCheck, Users, type LucideIcon } from "lucide-react";
+import { Building2, CalendarDays, Home, ShieldCheck, Users, Wallet, type LucideIcon } from "lucide-react";
 import type { Sesion } from "../../app/AuthProvider";
 
 export interface ItemNavegacion {
@@ -15,6 +15,7 @@ export function itemsNavegacion(rol: Sesion["rol"] | undefined): ItemNavegacion[
     { to: "/", label: "Inicio", icon: Home, end: true },
     { to: "/agenda", label: "Agenda", icon: CalendarDays },
     { to: "/pacientes", label: "Pacientes", icon: Users },
+    { to: "/contabilidad", label: "Contabilidad", icon: Wallet },
   ];
   if (rol === "admin") {
     base.push(
