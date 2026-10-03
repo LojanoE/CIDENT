@@ -1,32 +1,17 @@
-# React + TypeScript + Vite
+# web — Luna-Dental
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+SPA en React + TypeScript + Vite (Tailwind, react-router, Firebase). Parte del monorepo; los comandos se corren desde la raíz (ver `CLAUDE.md`).
 
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+npm run dev                       # servidor de desarrollo (sin service worker)
+npm run build                     # tsc -b && vite build (genera sw.js y manifest.webmanifest)
+npm run preview --workspace=web   # sirve dist/ — aquí sí corre el service worker
+npm run test:e2e --workspace=web  # Playwright (no usar `vitest` para e2e/)
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+## PWA y modo sin conexión
+
+- Instalable en iOS/Android con el logo de Luna-Dental (`public/icons/`, manifest en `vite.config.ts`).
+- La agenda se puede ver sin conexión (solo lectura): service worker de `vite-plugin-pwa` + caché persistente de Firestore + precarga de citas (−7/+30 días).
+- Para probarlo: `npm run build`, `npm run preview --workspace=web`, iniciar sesión, abrir la agenda y luego DevTools › Network › Offline y recargar.
+- Detalle de diseño y límites en la sección «PWA e instalación» de `CLAUDE.md`.

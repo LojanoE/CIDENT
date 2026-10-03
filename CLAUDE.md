@@ -85,8 +85,20 @@ Tipos TypeScript y schemas zod compartidos entre `functions` y `web` (vendorizad
 - `centros/{centroId}` — editable solo vía la callable `actualizarCentro` (Admin SDK); `firestore.rules` lo deja con `allow write: if false` para clientes.
 - `auditLogs` — append-only, lectura solo para admin, escrita únicamente por `registrarAuditoria`.
 
+### PWA e instalación (ícono y modo sin conexión)
+
+La web es instalable ("Agregar a pantalla de inicio") y la **agenda se puede consultar sin conexión** (solo lectura).
+
+- **Ícono/manifest:** `web/public/icons/` tiene `apple-touch-icon.png` (180), `icon-192.png`, `icon-512.png` e `icon-maskable-512.png`, todos con fondo blanco opaco (iOS pinta de negro lo transparente) y generados desde `functions/src/pdf/assets/luna-dental.png`. El manifest (`name` "Luna-Dental", `theme_color` `#1C5E5C`) se define en `web/vite.config.ts` y lo genera `vite-plugin-pwa`; las meta tags de iOS/Android están en `web/index.html`. Si cambia el logo, hay que regenerar los PNG a mano (no hay paso de build para eso).
+- **Service worker:** `vite-plugin-pwa` (Workbox, `generateSW`, `registerType: 'autoUpdate'`) precachea todo el build, incluidos los chunks lazy. Solo existe en el build (`npm run build` + `npm run preview --workspace=web`); **no corre en `vite dev`**. `navigateFallbackDenylist` excluye `/__/*` (rutas de auth de Firebase Hosting).
+- **Datos offline:** `web/src/app/firebase.ts` inicializa Firestore con `persistentLocalCache` (IndexedDB, multi-pestaña). `usePrecargaAgenda` (`features/agenda/useAgenda.ts`, montado en `AppShell`) mantiene escuchando las citas de [hoy −7, hoy +30 días) para que queden en caché. Los hooks de la agenda no cambian: `onSnapshot` responde desde la caché sin red.
+- **Sesión offline:** `AuthProvider` guarda `{uid, centroId, rol}` en `localStorage` (`cident.sesion`). Si `getIdTokenResult()` falla (sin red y token vencido) se usa esa copia, siempre que coincida el `uid`. Es solo para poder ver la caché; las reglas y callables siguen validando en el servidor cuando hay red.
+- **Logout:** hace `terminate` + `clearIndexedDbPersistence` y recarga la página, para no dejar datos de pacientes en un dispositivo compartido.
+- **UX:** `useEnLinea` (`lib/useEnLinea.ts`) muestra un banner "Sin conexión" en `AppShell` y deshabilita "Nueva cita" y "Guardar" en la agenda. Crear/editar citas, PDFs y cualquier callable requieren conexión.
+- **Límites:** la caché solo contiene lo que el usuario ya consultó más la ventana precargada; fuera de ella la agenda aparece vacía. Tras un deploy, el SW nuevo se activa en la siguiente carga; en el celular, para ver un ícono nuevo hay que borrar el acceso directo y volver a agregarlo.
+
 ### Despliegue
 
 - `firebase deploy --only functions,hosting` procesa las functions **antes** de finalizar/activar (release) el hosting. Un error en una fase posterior a functions pero previa al release de hosting (p. ej. falla al configurar la cleanup policy de Artifact Registry en una región nueva) puede dejar los archivos de hosting subidos pero **sin activar**, sirviendo en silencio la versión anterior aunque el log de functions muestre todo en verde. Si el sitio no refleja un deploy "exitoso", desplegar hosting aislado (`firebase deploy --only hosting`) para confirmar que llega hasta "release complete", y comparar el hash de los assets de `web/dist` contra los que sirve la URL en vivo.
-- `index.html` se sirve con `Cache-Control: max-age=3600` por defecto (no hay `headers` custom en `firebase.json`), así que un deploy recién activado puede tardar hasta una hora en reflejarse en navegadores con caché.
+- `firebase.json` fija `Cache-Control: no-cache` solo para `index.html`, `sw.js`, `workbox-*.js`, `registerSW.js` y `manifest.webmanifest`, de modo que un deploy llega a los navegadores sin esperar. El resto de los archivos usa el `max-age=3600` por defecto de Hosting (los assets de Vite llevan hash, así que no es problema).
 - Los assets de Vite (`web/dist/assets/*`) llevan hash de contenido en el nombre de archivo — sirven como señal de diagnóstico confiable para saber si lo que está en producción coincide con el build local.
