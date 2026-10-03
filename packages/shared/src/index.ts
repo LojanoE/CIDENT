@@ -1,5 +1,6 @@
 export * from "./types.js";
 export * from "./odontograma.js";
+export * from "./arcada3d.js";
 export * from "./cpo.js";
 export * from "./higiene.js";
 export * from "./edad.js";
@@ -8,3 +9,4 @@ export * from "./odontogramaDescripcion.js";
 export * from "./agenda.js";
 export * from "./presupuesto.js";
 export * from "./contabilidad.js";
+export * from "./portal.js";

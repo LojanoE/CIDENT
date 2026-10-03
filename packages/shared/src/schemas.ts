@@ -342,3 +342,13 @@ export const cancelarCitaSchema = z.object({
   motivoCancelacion: z.string().trim().max(500).default(""),
 });
 export type CancelarCitaInput = z.infer<typeof cancelarCitaSchema>;
+
+export const crearEnlacePortalSchema = z.object({
+  patientId: z.string().trim().min(1, "Falta el paciente"),
+});
+export const revocarEnlacePortalSchema = crearEnlacePortalSchema;
+
+/** 32 bytes en base64url = 43 caracteres. */
+export const verPortalSchema = z.object({
+  token: z.string().regex(/^[A-Za-z0-9_-]{43}$/, "Enlace no válido"),
+});

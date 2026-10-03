@@ -130,6 +130,12 @@ beforeEach(async () => {
       pagado: 50,
       estado: "aceptado",
     });
+    await setDoc(doc(db, "portalLinks", "hashA1"), {
+      centroId: CENTRO_A,
+      patientId: "patientA",
+      revocado: false,
+      expiraAt: "2099-01-01T00:00:00.000Z",
+    });
     await setDoc(doc(db, "patients/patientA/payments", "pagoA1"), {
       centroId: CENTRO_A,
       patientId: "patientA",
@@ -672,5 +678,25 @@ describe("storage.rules — aislamiento entre centros", () => {
 describe("sanity", () => {
   it("el entorno de reglas se inicializó", () => {
     expect(testEnv).toBeDefined();
+  });
+});
+
+describe("firestore.rules — portal del paciente", () => {
+  it("el personal lee los enlaces de su centro y no los de otro", async () => {
+    await assertSucceeds(getDoc(doc(ctxDoctorA().firestore(), "portalLinks", "hashA1")));
+    await assertFails(getDoc(doc(ctxDoctorB().firestore(), "portalLinks", "hashA1")));
+  });
+
+  it("nadie escribe enlaces desde el cliente, ni un admin", async () => {
+    for (const db of [ctxDoctorA().firestore(), ctxAdmin().firestore()]) {
+      await assertFails(setDoc(doc(db, "portalLinks", "nuevo"), { centroId: CENTRO_A, revocado: false }));
+      await assertFails(updateDoc(doc(db, "portalLinks", "hashA1"), { revocado: true }));
+      await assertFails(deleteDoc(doc(db, "portalLinks", "hashA1")));
+    }
+  });
+
+  it("un visitante sin sesión no lee nada", async () => {
+    const anon = testEnv.unauthenticatedContext().firestore();
+    await assertFails(getDoc(doc(anon, "portalLinks", "hashA1")));
   });
 });

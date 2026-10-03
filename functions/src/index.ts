@@ -26,3 +26,6 @@ export { anularGasto } from "./pagos/anularGasto.js";
 export { generarResumenAtencion } from "./documentos/generarResumenAtencion.js";
 
 export { onAdjuntoSubido } from "./storage/onAdjuntoSubido.js";
+export { crearEnlacePortal } from "./portal/crearEnlacePortal.js";
+export { revocarEnlacePortal } from "./portal/revocarEnlacePortal.js";
+export { verPortalPaciente } from "./portal/verPortalPaciente.js";

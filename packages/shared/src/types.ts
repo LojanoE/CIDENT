@@ -399,3 +399,30 @@ export interface Cita {
   canceladaPor: string | null;
   motivoCancelacion: string;
 }
+
+// ---------------------------------------------------------------------------
+// Portal del paciente (enlace / QR, sin cuenta)
+// ---------------------------------------------------------------------------
+
+/** `portalLinks/{sha256(token)}`: el token en claro nunca se guarda. */
+export interface EnlacePortal {
+  centroId: string;
+  patientId: string;
+  creadoPor: string; // uid
+  creadoAt: string; // ISO
+  expiraAt: string; // ISO
+  revocado: boolean;
+}
+
+/** Respuesta de `verPortalPaciente`: datos ya filtrados, sin dinero ni datos personales sensibles. */
+export interface PortalPacienteDatos {
+  centro: { nombre: string; telefono: string; direccion: string; logoDataUrl: string | null };
+  paciente: { nombre: string };
+  odontograma: { tipo: TipoOdontograma; dientes: Odontograma; fecha: string } | null;
+  plan: {
+    fecha: string;
+    estado: EstadoPresupuesto;
+    tratamientos: Array<{ tratamiento: string; pieza?: string; cantidad: number }>;
+  } | null;
+  citas: Array<{ inicio: string; profesionalNombre: string; motivo: string }>;
+}

@@ -38,6 +38,10 @@ service cloud.firestore {
     match /counters/{c}     { allow read, write: if false; }
     match /userSecrets/{uid} { allow read, write: if false; }
     match /rateLimits/{id}   { allow read, write: if false; }
+
+    // Portal del paciente: el personal ve si hay enlace activo y hasta cuándo (el doc guarda solo el
+    // hash del token). Crear y revocar es exclusivo de las callables.
+    match /portalLinks/{id} { allow read: if puedeLeerRecurso(resource); allow write: if false; }
     match /auditLogs/{id}   { allow read: if esAdmin(); allow write: if false; }
 
     match /centros/{centroId} {

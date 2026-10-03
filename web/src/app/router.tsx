@@ -19,6 +19,13 @@ import { NoEncontrada, RutaError } from "./RutaError";
 export const router = createBrowserRouter([
   { path: "/login", element: <LoginPage /> },
   {
+    // Pública: el paciente entra con el enlace/QR, sin sesión.
+    path: "/p/:token",
+    lazy: async () => ({
+      Component: (await import("../features/portal/PortalPacientePage")).PortalPacientePage,
+    }),
+  },
+  {
     path: "/",
     element: (
       <ProtectedRoute>

@@ -19,7 +19,10 @@ export type AccionAuditoria =
   | "resumen_atencion_generado"
   | "adjunto_subido"
   | "atencion_eliminada"
-  | "atencion_anulada";
+  | "atencion_anulada"
+  | "portal_enlace_creado"
+  | "portal_enlace_revocado"
+  | "portal_visitado";
 
 export interface RegistrarAuditoriaParams {
   accion: AccionAuditoria;

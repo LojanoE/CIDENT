@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { Suspense, lazy, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useAuth } from "../../app/AuthProvider";
 import { Badge, Card, CardBody, CardHeader, ConfirmarDialog, Spinner } from "../../components/ui";
 import { cn } from "../../lib/cn";
 import { useEsEscritorio } from "../../lib/useMediaQuery";
+import { soportaWebGL } from "../../lib/webgl";
 import { useAtencion } from "../atenciones/useAtencion";
 import { cuadranteInicial, cuadrantesDe } from "./geometria";
 import { HigieneTabla } from "./HigieneTabla";
@@ -13,6 +14,24 @@ import type { SeleccionOdontograma } from "./Odontograma";
 import { SelectorCuadrante } from "./SelectorCuadrante";
 import { useOdontograma } from "./useOdontograma";
 import { ZonaEditor } from "./ZonaEditor";
+import { ErrorBoundary3D } from "./3d/ErrorBoundary3D";
+
+// three.js pesa bastante: solo se descarga al abrir la vista 3D.
+const Odontograma3D = lazy(() =>
+  import("./3d/Odontograma3D").then((m) => ({ default: m.Odontograma3D })),
+);
+
+const CLAVE_VISTA = "cident.odontograma.vista";
+const WEBGL = soportaWebGL();
+
+function vistaInicial(): "2d" | "3d" {
+  if (!WEBGL) return "2d";
+  try {
+    return localStorage.getItem(CLAVE_VISTA) === "3d" ? "3d" : "2d";
+  } catch {
+    return "2d";
+  }
+}
 
 const TIPOS = [
   { valor: "adulto", etiqueta: "Adulto (32)" },
@@ -36,6 +55,16 @@ export function OdontogramaPage() {
   const { atencion } = useAtencion();
   const [seleccion, setSeleccion] = useState<SeleccionOdontograma | null>(null);
   const [cuadranteElegido, setCuadranteElegido] = useState<number | null>(null);
+  const [vista, setVista] = useState<"2d" | "3d">(vistaInicial);
+
+  function cambiarVista(nueva: "2d" | "3d") {
+    setVista(nueva);
+    try {
+      localStorage.setItem(CLAVE_VISTA, nueva);
+    } catch {
+      // La preferencia es solo una comodidad.
+    }
+  }
 
   const soloLectura = atencion.estado !== "draft";
 
@@ -125,23 +154,72 @@ export function OdontogramaPage() {
       <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <Card>
           <CardBody className="space-y-4">
-            {!escritorio && (
-              <SelectorCuadrante tipo={odo.tipo} activo={cuadrante} onCambiar={setCuadranteElegido} />
+            <div className="flex flex-wrap items-center gap-3">
+              <div
+                role="group"
+                aria-label="Tipo de vista"
+                className="inline-flex overflow-hidden rounded-md border border-input bg-surface"
+              >
+                {(["2d", "3d"] as const).map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    disabled={v === "3d" && !WEBGL}
+                    aria-pressed={vista === v}
+                    onClick={() => cambiarVista(v)}
+                    className={cn(
+                      "min-h-touch px-4 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60",
+                      vista === v ? "bg-accent text-accent-ink" : "text-ink hover:bg-accent-wash",
+                    )}
+                  >
+                    {v === "2d" ? "2D" : "3D"}
+                  </button>
+                ))}
+              </div>
+              {!WEBGL && (
+                <span className="text-13 text-ink-soft">Este navegador no admite gráficos 3D (WebGL).</span>
+              )}
+            </div>
+            {vista === "3d" ? (
+              <ErrorBoundary3D
+                alternativa={
+                  <p className="text-sm text-ink-soft">
+                    No se pudo cargar la vista 3D. Verifica tu conexión o vuelve a la vista 2D.
+                  </p>
+                }
+              >
+                <Suspense fallback={<Spinner label="Cargando vista 3D…" />}>
+                  <Odontograma3D
+                    tipo={odo.tipo}
+                    dientes={odo.dientes}
+                    soloLectura={soloLectura}
+                    seleccion={seleccion}
+                    onZonaClick={(fdi, zona) => setSeleccion({ fdi, zona })}
+                    onGeneralClick={(fdi) => setSeleccion({ fdi, zona: null })}
+                  />
+                </Suspense>
+              </ErrorBoundary3D>
+            ) : (
+              <>
+                {!escritorio && (
+                  <SelectorCuadrante tipo={odo.tipo} activo={cuadrante} onCambiar={setCuadranteElegido} />
+                )}
+                <Odontograma
+                  tipo={odo.tipo}
+                  dientes={odo.dientes}
+                  soloLectura={soloLectura}
+                  seleccion={seleccion}
+                  cuadrante={escritorio ? null : cuadrante}
+                  onZonaClick={(fdi, zona) => setSeleccion({ fdi, zona })}
+                  onGeneralClick={(fdi) => setSeleccion({ fdi, zona: null })}
+                />
+                <p className="text-13 text-ink-soft">
+                  {soloLectura
+                    ? "Toca una zona para ver su detalle."
+                    : "Toca una zona del diente para editarla. Dentro del editor puedes cambiar a «Todo el diente»."}
+                </p>
+              </>
             )}
-            <Odontograma
-              tipo={odo.tipo}
-              dientes={odo.dientes}
-              soloLectura={soloLectura}
-              seleccion={seleccion}
-              cuadrante={escritorio ? null : cuadrante}
-              onZonaClick={(fdi, zona) => setSeleccion({ fdi, zona })}
-              onGeneralClick={(fdi) => setSeleccion({ fdi, zona: null })}
-            />
-            <p className="text-13 text-ink-soft">
-              {soloLectura
-                ? "Toca una zona para ver su detalle."
-                : "Toca una zona del diente para editarla. Dentro del editor puedes cambiar a «Todo el diente»."}
-            </p>
             <LeyendaOdontograma abierta={escritorio} />
           </CardBody>
         </Card>
