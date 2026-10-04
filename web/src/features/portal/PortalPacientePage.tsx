@@ -3,6 +3,7 @@ import { Phone } from "lucide-react";
 import { Suspense, lazy, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Spinner } from "../../components/ui";
+import { aplicarActualizacion, useHayActualizacion } from "../../lib/actualizacionApp";
 import { soportaWebGL } from "../../lib/webgl";
 import { LeyendaOdontograma } from "../odontograma/LeyendaOdontograma";
 import { ErrorBoundary3D } from "../odontograma/3d/ErrorBoundary3D";
@@ -59,6 +60,12 @@ export function PortalPacientePage() {
   const [datos, setDatos] = useState<PortalPacienteDatos | null>(null);
   const [estado, setEstado] = useState<"cargando" | "ok" | "invalido">("cargando");
   const [seleccion, setSeleccion] = useState<SeleccionOdontograma | null>(null);
+
+  // El portal es de solo lectura: se actualiza sin preguntar.
+  const hayActualizacion = useHayActualizacion();
+  useEffect(() => {
+    if (hayActualizacion) aplicarActualizacion();
+  }, [hayActualizacion]);
 
   useEffect(() => {
     let vivo = true;

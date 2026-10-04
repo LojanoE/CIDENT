@@ -5,6 +5,7 @@ import { useAuth } from "../../app/AuthProvider";
 import { usePrecargaAgenda } from "../../features/agenda/useAgenda";
 import { useCentroActual } from "../../features/centros/centrosApi";
 import { useEnLinea } from "../../lib/useEnLinea";
+import { AvisoActualizacion } from "./AvisoActualizacion";
 import { MobileTabBar } from "./MobileTabBar";
 import { etiquetaRol } from "./navegacion";
 import { SidebarNav } from "./SidebarNav";
@@ -80,6 +81,8 @@ export function AppShell() {
             <LogOut aria-hidden className="h-5 w-5" />
           </button>
         </header>
+
+        <AvisoActualizacion />
 
         {!enLinea && (
           <div

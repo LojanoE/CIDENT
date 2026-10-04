@@ -4,7 +4,8 @@ import { OrbitControls } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import type { Group } from "three";
+import { Box3, Vector3 } from "three";
+import type { Group, PerspectiveCamera } from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { cn } from "../../../lib/cn";
 import type { SeleccionOdontograma } from "../Odontograma";
@@ -18,12 +19,13 @@ const VISTAS: Array<{ id: Vista; etiqueta: string }> = [
   { id: "inferior", etiqueta: "Inferior" },
 ];
 
-const POSICION_CAMARA: Record<Vista, [number, number, number]> = {
-  frente: [0, 0.6, 12.5],
-  superior: [0, -12, 3],
-  inferior: [0, 12, 3],
+/** Dirección desde el centro de la boca hacia la cámara en cada vista. */
+const DIRECCION_CAMARA: Record<Vista, [number, number, number]> = {
+  frente: [0, 0.15, 1],
+  superior: [0, -1, 0.25],
+  inferior: [0, 1, 0.25],
 };
-const OBJETIVO: [number, number, number] = [0, 0, 0.5];
+const MARGEN_ENCUADRE = 1.15;
 const APERTURA = 1.6;
 
 interface Odontograma3DProps {
@@ -59,16 +61,47 @@ function Deslizable({ destino, children }: { destino: number; children: ReactNod
   return <group ref={ref}>{children}</group>;
 }
 
-function Camara({ vista, controles }: { vista: Vista; controles: React.RefObject<OrbitControlsImpl | null> }) {
-  const { camera, invalidate } = useThree();
+/** Encuadra la boca completa (ancho y alto) según el tamaño del canvas y la vista elegida. */
+function Camara({
+  vista,
+  controles,
+  boca,
+}: {
+  vista: Vista;
+  controles: React.RefObject<OrbitControlsImpl | null>;
+  boca: React.RefObject<Group | null>;
+}) {
+  const { camera, invalidate, size } = useThree();
+  const medida = useRef<{ centro: Vector3; ancho: number; alto: number; fondo: number } | null>(null);
 
   useEffect(() => {
-    const [x, y, z] = POSICION_CAMARA[vista];
-    camera.position.set(x, y, z);
-    controles.current?.target.set(...OBJETIVO);
-    controles.current?.update();
+    if (!medida.current && boca.current) {
+      // Se mide una sola vez, con las arcadas aún cerradas; la apertura se suma aparte.
+      const caja = new Box3().setFromObject(boca.current);
+      if (!caja.isEmpty()) {
+        const t = caja.getSize(new Vector3());
+        medida.current = { centro: caja.getCenter(new Vector3()), ancho: t.x, alto: t.y + 2 * APERTURA, fondo: t.z };
+      }
+    }
+    const m = medida.current ?? { centro: new Vector3(0, 0, 0.5), ancho: 12, alto: 8.5, fondo: 5 };
+    const cam = camera as PerspectiveCamera;
+    const tanMitad = Math.tan((cam.fov * Math.PI) / 360);
+    const aspecto = size.width / Math.max(size.height, 1);
+    // En las vistas superior/inferior el alto visible es la profundidad de la boca.
+    const altoVisible = vista === "frente" ? m.alto : m.fondo + 2 * APERTURA * 0.25;
+    const distancia =
+      Math.max(altoVisible / 2 / tanMitad, m.ancho / 2 / (tanMitad * aspecto)) * MARGEN_ENCUADRE + m.fondo / 2;
+
+    const dir = new Vector3(...DIRECCION_CAMARA[vista]).normalize();
+    camera.position.copy(m.centro).addScaledVector(dir, distancia);
+    const c = controles.current;
+    if (c) {
+      c.target.copy(m.centro);
+      c.maxDistance = distancia * 1.8;
+      c.update();
+    }
     invalidate();
-  }, [vista, camera, controles, invalidate]);
+  }, [vista, camera, controles, boca, size.width, size.height, invalidate]);
 
   return null;
 }
@@ -82,8 +115,9 @@ export function Odontograma3D({
   onGeneralClick,
 }: Odontograma3DProps) {
   const [vista, setVista] = useState<Vista>("frente");
-  const [abierta, setAbierta] = useState(false);
+  const [abierta, setAbierta] = useState(true);
   const controles = useRef<OrbitControlsImpl | null>(null);
+  const boca = useRef<Group>(null);
 
   const lista = tipo === "adulto" ? FDI_PERMANENTES : FDI_TEMPORALES;
   const superiores = lista.filter((fdi) => arcadaDe(fdi) === "superior");
@@ -120,26 +154,27 @@ export function Odontograma3D({
         <Canvas
           frameloop="demand"
           dpr={[1, 2]}
-          camera={{ position: POSICION_CAMARA.frente, fov: 35, near: 0.1, far: 100 }}
+          camera={{ position: [0, 2, 14], fov: 35, near: 0.1, far: 100 }}
         >
           <ambientLight intensity={0.55} />
           <hemisphereLight args={["#ffffff", "#c9b9a0", 0.5]} />
           <directionalLight position={[4, 8, 10]} intensity={1.6} />
           <directionalLight position={[-6, -4, 6]} intensity={0.5} />
 
-          <Deslizable destino={abierta ? APERTURA : 0}>{superiores.map(renderDiente)}</Deslizable>
-          <Deslizable destino={abierta ? -APERTURA : 0}>{inferiores.map(renderDiente)}</Deslizable>
+          <group ref={boca}>
+            <Deslizable destino={abierta ? APERTURA : 0}>{superiores.map(renderDiente)}</Deslizable>
+            <Deslizable destino={abierta ? -APERTURA : 0}>{inferiores.map(renderDiente)}</Deslizable>
+          </group>
 
           <OrbitControls
             ref={controles}
             makeDefault
-            target={OBJETIVO}
             enablePan={false}
             minDistance={5}
-            maxDistance={20}
+            maxDistance={30}
             enableDamping={false}
           />
-          <Camara vista={vista} controles={controles} />
+          <Camara vista={vista} controles={controles} boca={boca} />
         </Canvas>
 
         <div className="pointer-events-none absolute inset-x-2 top-2 flex flex-wrap items-start justify-between gap-2">
@@ -162,7 +197,7 @@ export function Odontograma3D({
             onClick={() => setAbierta((v) => !v)}
             className={cn("pointer-events-auto", boton(abierta))}
           >
-            Abrir boca
+            {abierta ? "Cerrar boca" : "Abrir boca"}
           </button>
         </div>
       </div>

@@ -10,6 +10,9 @@ import "@fontsource/ibm-plex-sans/latin-400.css";
 import "@fontsource/ibm-plex-sans/latin-500.css";
 import "@fontsource/ibm-plex-sans/latin-600.css";
 import "./index.css";
+import { iniciarActualizaciones } from "./lib/actualizacionApp";
+
+iniciarActualizaciones();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
