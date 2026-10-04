@@ -4,6 +4,7 @@ import { getFirestore } from "firebase-admin/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { registrarAuditoria } from "../lib/auditoria.js";
 import { requireAdmin } from "../lib/guards.js";
+import { revertirPlanDeVisita } from "../lib/planTratamiento.js";
 
 /**
  * Anula una atención finalizada. No borra nada: la atención queda visible,
@@ -40,12 +41,14 @@ export const anularAtencion = onCall({ region: "southamerica-east1" }, async (re
     motivoAnulacion: motivo,
   });
 
+  const tratamientosRevertidos = await revertirPlanDeVisita(patientId, visitId, atencion.centroId);
+
   await registrarAuditoria({
     accion: "atencion_anulada",
     uid: contexto.uid,
     centroId: atencion.centroId,
     entidad: { tipo: "visits", id: visitId },
-    detalle: { patientId, motivo },
+    detalle: { patientId, motivo, tratamientosRevertidos },
   });
 
   return { ok: true };

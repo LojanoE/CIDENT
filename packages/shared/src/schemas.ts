@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CATEGORIAS_GASTO, CONDICIONES, ESTADOS_CITA, FORMAS_PAGO, ZONAS } from "./types.js";
+import { CATEGORIAS_GASTO, CONDICIONES, ESTADOS_CITA, ESTADOS_ITEM_PLAN, FORMAS_PAGO, ZONAS } from "./types.js";
 
 export const cedulaSchema = z
   .string()
@@ -352,3 +352,17 @@ export const revocarEnlacePortalSchema = crearEnlacePortalSchema;
 export const verPortalSchema = z.object({
   token: z.string().regex(/^[A-Za-z0-9_-]{43}$/, "Enlace no válido"),
 });
+
+export const itemPlanSchema = z.object({
+  tratamiento: z.string().trim().min(2, "Indica el tratamiento").max(120),
+  pieza: z
+    .string()
+    .trim()
+    .max(10)
+    .nullable()
+    .optional()
+    .transform((v) => (v ? v : undefined)),
+});
+export type ItemPlanInput = z.infer<typeof itemPlanSchema>;
+
+export const estadoItemPlanSchema = z.enum(ESTADOS_ITEM_PLAN);

@@ -4,6 +4,7 @@ import type {
   HigieneDoc,
   IndiceHigieneDiente,
   Odontograma,
+  OdontogramaDoc,
   ResultadoCPO,
   TipoOdontograma,
   Zona,
@@ -19,6 +20,7 @@ import {
   guardarOdontograma,
   obtenerHigiene,
   obtenerOdontograma,
+  obtenerOdontogramaAnterior,
 } from "./odontogramaApi";
 
 const AUTOSAVE_MS = 1500;
@@ -30,6 +32,8 @@ interface Estado {
   dientes: Odontograma;
   higiene: Record<string, IndiceHigieneDiente>;
   sucio: boolean;
+  /** Si el odontograma arrancó como copia del de una atención anterior. */
+  copiadoDe?: OdontogramaDoc["copiadoDe"];
 }
 
 type Accion =
@@ -39,6 +43,7 @@ type Accion =
   | { tipo: "CLEAR_GENERAL"; fdi: number }
   | { tipo: "SET_TIPO"; valor: TipoOdontograma }
   | { tipo: "SET_HIGIENE"; fdi: number; indicador: Indicador; valor: number }
+  | { tipo: "EMPEZAR_EN_BLANCO" }
   | { tipo: "RESET"; estado: Estado };
 
 function reducir(estado: Estado, accion: Accion): Estado {
@@ -90,6 +95,8 @@ function reducir(estado: Estado, accion: Accion): Estado {
         higiene: { ...estado.higiene, [key]: { ...registro, [accion.indicador]: accion.valor } },
       };
     }
+    case "EMPEZAR_EN_BLANCO":
+      return { ...estado, sucio: true, dientes: {}, copiadoDe: undefined };
     case "RESET":
       return accion.estado;
     default:
@@ -104,10 +111,12 @@ interface UseOdontogramaOptions {
   visitId: string;
   centroId: string;
   uid: string;
+  /** Fecha de la atención (YYYY-MM-DD): de ahí se busca el odontograma anterior a copiar. */
+  fecha: string;
   soloLectura: boolean;
 }
 
-export function useOdontograma({ patientId, visitId, centroId, uid, soloLectura }: UseOdontogramaOptions) {
+export function useOdontograma({ patientId, visitId, centroId, uid, fecha, soloLectura }: UseOdontogramaOptions) {
   const [estado, dispatch] = useReducer(reducir, ESTADO_VACIO);
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
@@ -121,15 +130,19 @@ export function useOdontograma({ patientId, visitId, centroId, uid, soloLectura 
     let cancelado = false;
     setCargando(true);
     Promise.all([obtenerOdontograma(patientId, visitId), obtenerHigiene(patientId, visitId)])
-      .then(([odo, hig]) => {
+      .then(async ([odo, hig]) => {
+        // Atención nueva sin odontograma propio: continúa el último del paciente (la higiene no se
+        // copia, se mide en cada cita). `sucio` hace que el autosave lo guarde como propio.
+        const anterior = !odo && !soloLectura ? await obtenerOdontogramaAnterior(patientId, centroId, visitId, fecha) : null;
         if (cancelado) return;
         dispatch({
           tipo: "RESET",
           estado: {
-            tipo: odo?.tipo ?? "adulto",
-            dientes: odo?.dientes ?? {},
+            tipo: odo?.tipo ?? anterior?.tipo ?? "adulto",
+            dientes: odo?.dientes ?? anterior?.dientes ?? {},
             higiene: hig?.dientes ?? {},
-            sucio: false,
+            sucio: anterior !== null,
+            copiadoDe: odo?.copiadoDe ?? (anterior ? { visitId: anterior.visitId, fecha: anterior.fecha } : undefined),
           },
         });
       })
@@ -138,7 +151,7 @@ export function useOdontograma({ patientId, visitId, centroId, uid, soloLectura 
     return () => {
       cancelado = true;
     };
-  }, [patientId, visitId]);
+  }, [patientId, visitId, centroId, fecha, soloLectura]);
 
   // Refleja cambios de otra sesión editando la misma atención (último gana).
   useEffect(() => {
@@ -152,7 +165,13 @@ export function useOdontograma({ patientId, visitId, centroId, uid, soloLectura 
       if (estadoRef.current.sucio) return;
       dispatch({
         tipo: "RESET",
-        estado: { tipo: remoto.tipo, dientes: remoto.dientes, higiene: estadoRef.current.higiene, sucio: false },
+        estado: {
+          tipo: remoto.tipo,
+          dientes: remoto.dientes,
+          higiene: estadoRef.current.higiene,
+          sucio: false,
+          copiadoDe: estadoRef.current.copiadoDe,
+        },
       });
     });
     return unsub;
@@ -169,7 +188,7 @@ export function useOdontograma({ patientId, visitId, centroId, uid, soloLectura 
     setError(null);
     try {
       await Promise.all([
-        guardarOdontograma(patientId, visitId, centroId, uid, actual.tipo, actual.dientes),
+        guardarOdontograma(patientId, visitId, centroId, uid, actual.tipo, actual.dientes, actual.copiadoDe),
         guardarHigiene(patientId, visitId, centroId, actual.higiene),
       ]);
       await actualizarCpoEHigiene(
@@ -228,6 +247,9 @@ export function useOdontograma({ patientId, visitId, centroId, uid, soloLectura 
   const setTipo = useCallback((valor: TipoOdontograma) => {
     dispatch({ tipo: "SET_TIPO", valor });
   }, []);
+  const empezarEnBlanco = useCallback(() => {
+    dispatch({ tipo: "EMPEZAR_EN_BLANCO" });
+  }, []);
   const setHigiene = useCallback((fdi: number, indicador: Indicador, valor: number) => {
     dispatch({ tipo: "SET_HIGIENE", fdi, indicador, valor });
   }, []);
@@ -239,6 +261,8 @@ export function useOdontograma({ patientId, visitId, centroId, uid, soloLectura 
     cargando,
     guardando,
     sucio: estado.sucio,
+    copiadoDe: estado.copiadoDe,
+    empezarEnBlanco,
     error,
     cpo,
     indicadores,

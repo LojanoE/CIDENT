@@ -162,8 +162,33 @@ export interface OdontogramaDoc {
   visitId: string;
   tipo: TipoOdontograma;
   dientes: Odontograma;
+  /** Si arrancó como copia del odontograma de una atención anterior. */
+  copiadoDe?: { visitId: string; fecha: string };
   updatedAt: string;
   updatedBy: string;
+}
+
+// ---------------------------------------------------------------------------
+// Plan de tratamiento (por paciente, se ejecuta a lo largo de varias atenciones)
+// ---------------------------------------------------------------------------
+
+export const ESTADOS_ITEM_PLAN = ["pendiente", "realizado", "descartado"] as const;
+export type EstadoItemPlan = (typeof ESTADOS_ITEM_PLAN)[number];
+
+export interface ItemPlan {
+  id: string;
+  centroId: string;
+  patientId: string;
+  tratamiento: string;
+  pieza?: string;
+  estado: EstadoItemPlan;
+  orden: number;
+  /** Presupuesto del que se importó (evita importarlo dos veces). */
+  origen?: { budgetId: string; codigo: string };
+  realizado?: { visitId: string; fecha: string; uid: string; nota: string };
+  createdAt: string;
+  createdBy: string;
+  updatedAt?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -421,8 +446,9 @@ export interface PortalPacienteDatos {
   odontograma: { tipo: TipoOdontograma; dientes: Odontograma; fecha: string } | null;
   plan: {
     fecha: string;
-    estado: EstadoPresupuesto;
-    tratamientos: Array<{ tratamiento: string; pieza?: string; cantidad: number }>;
+    /** Solo cuando el plan sale de un presupuesto; el plan de tratamiento propio no lo tiene. */
+    estado?: EstadoPresupuesto;
+    tratamientos: Array<{ tratamiento: string; pieza?: string; cantidad: number; realizado?: boolean }>;
   } | null;
   citas: Array<{ inicio: string; profesionalNombre: string; motivo: string }>;
 }

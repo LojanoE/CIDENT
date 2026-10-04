@@ -1,4 +1,4 @@
-import type { Atencion, Centro, OdontogramaDoc, Paciente, Usuario } from "@cident/shared";
+import type { Atencion, Centro, ItemPlan, OdontogramaDoc, Paciente, Usuario } from "@cident/shared";
 import { generarResumenAtencionSchema } from "@cident/shared";
 import { getFirestore } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
@@ -38,6 +38,19 @@ export const generarResumenAtencion = onCall({ region: "southamerica-east1" }, a
     throw new HttpsError("failed-precondition", "La atención está anulada.");
   }
 
+  const realizadosSnap = await pacienteRef
+    .collection("planTratamiento")
+    .where("realizado.visitId", "==", visitId)
+    .get();
+  const tratamientosRealizados = realizadosSnap.docs
+    .map((d) => d.data() as ItemPlan)
+    .filter((i) => i.centroId === atencion.centroId)
+    .sort((a, b) => a.orden - b.orden)
+    .map((i) => {
+      const base = i.pieza ? `${i.tratamiento} (pieza ${i.pieza})` : i.tratamiento;
+      return i.realizado?.nota ? `${base} — ${i.realizado.nota}` : base;
+    });
+
   const esAdmin = contexto.claims.rol === "admin";
   if (!esAdmin && paciente.centroId !== contexto.claims.centroId) {
     throw new HttpsError("permission-denied", "No pertenece a su centro.");
@@ -65,6 +78,7 @@ export const generarResumenAtencion = onCall({ region: "southamerica-east1" }, a
     paciente,
     atencion,
     odontograma,
+    tratamientosRealizados,
     firma,
     logo,
   });

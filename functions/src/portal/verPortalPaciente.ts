@@ -2,12 +2,13 @@ import type {
   Centro,
   Cita,
   EnlacePortal,
+  ItemPlan,
   OdontogramaDoc,
   Paciente,
   PortalPacienteDatos,
   Presupuesto,
 } from "@cident/shared";
-import { enlaceVigente, planSinMontos, verPortalSchema } from "@cident/shared";
+import { enlaceVigente, planSinMontos, planTratamientoParaPortal, verPortalSchema } from "@cident/shared";
 import { getFirestore } from "firebase-admin/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { registrarAuditoria } from "../lib/auditoria.js";
@@ -68,12 +69,18 @@ export const verPortalPaciente = onCall({ region: "southamerica-east1" }, async 
     break;
   }
 
-  // Plan: último presupuesto pendiente o aceptado, sin montos.
+  // Plan: el plan de tratamiento del paciente (con lo ya realizado); si no hay, el último
+  // presupuesto pendiente o aceptado. Nunca montos.
+  const planSnap = await pacienteRef.collection("planTratamiento").where("centroId", "==", centroId).get();
+  const planPropio = planTratamientoParaPortal(
+    planSnap.docs.map((d) => d.data() as ItemPlan),
+    new Date().toISOString().slice(0, 10),
+  );
   const presupuestos = await pacienteRef.collection("budgets").orderBy("fecha", "desc").limit(10).get();
   const presupuesto = presupuestos.docs
     .map((d) => d.data() as Presupuesto)
     .find((p) => p.estado === "pendiente" || p.estado === "aceptado");
-  const plan = presupuesto ? planSinMontos(presupuesto) : null;
+  const plan = planPropio ?? (presupuesto ? planSinMontos(presupuesto) : null);
 
   // Próximas citas.
   const citasSnap = await db

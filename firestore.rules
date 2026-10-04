@@ -109,6 +109,16 @@ service cloud.firestore {
       // Pagos: solo el backend los crea y anula (nunca se borran).
       match /payments/{id}      { allow read: if puedeLeerRecurso(resource); allow write: if false; }
 
+      // Plan de tratamiento: lo arma y marca el personal del centro; un ítem ya realizado no se borra
+      // (queda como historial; se puede desmarcar o descartar).
+      match /planTratamiento/{id} {
+        allow read:   if puedeLeerRecurso(resource);
+        allow create: if centroValido(request.resource.data)
+                      && request.resource.data.patientId == patientId;
+        allow update: if puedeLeer(resource.data) && noMueveCentro();
+        allow delete: if puedeLeer(resource.data) && resource.data.estado != 'realizado';
+      }
+
       // Presupuestos: los crea solo el backend. El cliente únicamente puede cambiar el estado
       // (el paciente acepta o rechaza después, incluso con la atención ya finalizada).
       match /budgets/{id} {

@@ -4,6 +4,7 @@ import { getFirestore } from "firebase-admin/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { registrarAuditoria } from "../lib/auditoria.js";
 import { requireAuth } from "../lib/guards.js";
+import { revertirPlanDeVisita } from "../lib/planTratamiento.js";
 
 /**
  * Elimina un borrador junto con su subcolección `detalle` (odontograma).
@@ -70,6 +71,8 @@ export const eliminarAtencion = onCall({ region: "southamerica-east1" }, async (
   }
   await lote.commit();
 
+  const tratamientosRevertidos = await revertirPlanDeVisita(patientId, visitId, atencion.centroId);
+
   await db.recursiveDelete(visitaRef);
 
   await registrarAuditoria({
@@ -77,7 +80,7 @@ export const eliminarAtencion = onCall({ region: "southamerica-east1" }, async (
     uid: contexto.uid,
     centroId: atencion.centroId,
     entidad: { tipo: "visits", id: visitId },
-    detalle: { patientId, fecha: atencion.fecha, citasDesvinculadas: citas.size },
+    detalle: { patientId, fecha: atencion.fecha, citasDesvinculadas: citas.size, tratamientosRevertidos },
   });
 
   return { ok: true };

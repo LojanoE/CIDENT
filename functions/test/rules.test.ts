@@ -130,6 +130,18 @@ beforeEach(async () => {
       pagado: 50,
       estado: "aceptado",
     });
+    await setDoc(doc(db, "patients/patientA/planTratamiento", "itemPend"), {
+      centroId: CENTRO_A,
+      patientId: "patientA",
+      tratamiento: "Resina",
+      estado: "pendiente",
+    });
+    await setDoc(doc(db, "patients/patientA/planTratamiento", "itemHecho"), {
+      centroId: CENTRO_A,
+      patientId: "patientA",
+      tratamiento: "Limpieza",
+      estado: "realizado",
+    });
     await setDoc(doc(db, "portalLinks", "hashA1"), {
       centroId: CENTRO_A,
       patientId: "patientA",
@@ -302,6 +314,29 @@ describe("firestore.rules — aislamiento entre centros", () => {
   it("ni el doctor ni el admin pueden borrar una atención desde el cliente", async () => {
     await assertFails(deleteDoc(doc(ctxDoctorA().firestore(), "patients/patientA/visits", "visitA1")));
     await assertFails(deleteDoc(doc(ctxAdmin().firestore(), "patients/patientA/visits", "visitA1")));
+  });
+
+  it("plan de tratamiento: doctor A lo lee y lo edita, doctor B no", async () => {
+    const dbA = ctxDoctorA().firestore();
+    await assertSucceeds(getDoc(doc(dbA, "patients/patientA/planTratamiento", "itemPend")));
+    await assertSucceeds(updateDoc(doc(dbA, "patients/patientA/planTratamiento", "itemPend"), { estado: "realizado" }));
+    const dbB = ctxDoctorB().firestore();
+    await assertFails(getDoc(doc(dbB, "patients/patientA/planTratamiento", "itemPend")));
+    await assertFails(updateDoc(doc(dbB, "patients/patientA/planTratamiento", "itemPend"), { estado: "descartado" }));
+  });
+
+  it("plan de tratamiento: no se crea con centroId ajeno y un ítem realizado no se borra", async () => {
+    const dbA = ctxDoctorA().firestore();
+    await assertFails(
+      setDoc(doc(dbA, "patients/patientA/planTratamiento", "x"), {
+        centroId: CENTRO_B,
+        patientId: "patientA",
+        tratamiento: "Resina",
+        estado: "pendiente",
+      }),
+    );
+    await assertFails(deleteDoc(doc(dbA, "patients/patientA/planTratamiento", "itemHecho")));
+    await assertSucceeds(deleteDoc(doc(dbA, "patients/patientA/planTratamiento", "itemPend")));
   });
 
   it("doctor A no puede eliminar un paciente (solo admin)", async () => {

@@ -28,6 +28,8 @@ interface ZonaEditorProps {
   onGuardar: (valor: EstadoZona) => void;
   onLimpiar: () => void;
   onCerrar: () => void;
+  /** Abre la línea de tiempo de la pieza (se cierra el editor antes). */
+  onVerHistorial?: () => void;
 }
 
 export function ZonaEditor({
@@ -40,6 +42,7 @@ export function ZonaEditor({
   onGuardar,
   onLimpiar,
   onCerrar,
+  onVerHistorial,
 }: ZonaEditorProps) {
   const [estados, setEstados] = useState<Condicion[]>([]);
   const [color, setColor] = useState("#000000");
@@ -106,6 +109,11 @@ export function ZonaEditor({
         )
       }
     >
+      {onVerHistorial && (
+        <Button variant="ghost" size="sm" className="mb-3" onClick={onVerHistorial}>
+          Historial de esta pieza
+        </Button>
+      )}
       <fieldset disabled={soloLectura} className="min-w-0 space-y-5 disabled:opacity-60">
         <div>
           <p className="mb-2 text-sm font-medium">Qué se edita</p>

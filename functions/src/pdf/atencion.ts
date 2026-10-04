@@ -19,6 +19,8 @@ export interface DatosResumenAtencion {
   paciente: Paciente;
   atencion: Atencion;
   odontograma: OdontogramaDoc | null;
+  /** Ítems del plan marcados como realizados en esta atención (ya con pieza y nota). */
+  tratamientosRealizados?: string[];
   firma: Buffer | null;
   logo: Buffer | null;
 }
@@ -106,6 +108,18 @@ export function generarPdfResumenAtencion(datos: DatosResumenAtencion): Promise<
         texto: `C: ${cpo.c}  —  P: ${cpo.p}  —  O: ${cpo.o}  —  Total: ${cpo.total}`,
       },
     );
+
+    if (datos.tratamientosRealizados && datos.tratamientosRealizados.length > 0) {
+      y = asegurarEspacio(doc, y, cm(3));
+      y = bloqueTexto(
+        doc,
+        PAGE_MARGIN_X,
+        y,
+        anchoUtil,
+        "TRATAMIENTOS REALIZADOS",
+        datos.tratamientosRealizados.map((t) => `• ${t}`).join("\n"),
+      );
+    }
 
     if (datos.atencion.notas) {
       y = asegurarEspacio(doc, y, cm(3));

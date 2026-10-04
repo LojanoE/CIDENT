@@ -1,13 +1,16 @@
 import { Suspense, lazy, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useAuth } from "../../app/AuthProvider";
-import { Badge, Card, CardBody, CardHeader, ConfirmarDialog, Spinner } from "../../components/ui";
+import { Badge, Button, Card, CardBody, CardHeader, ConfirmarDialog, Spinner } from "../../components/ui";
 import { cn } from "../../lib/cn";
 import { useEsEscritorio } from "../../lib/useMediaQuery";
 import { soportaWebGL } from "../../lib/webgl";
 import { useAtencion } from "../atenciones/useAtencion";
+import { TratamientosDeAtencion } from "../plan/TratamientosDeAtencion";
+import { usePlan } from "../plan/usePlan";
 import { cuadranteInicial, cuadrantesDe } from "./geometria";
 import { HigieneTabla } from "./HigieneTabla";
+import { HistorialDiente } from "./HistorialDiente";
 import { LeyendaOdontograma } from "./LeyendaOdontograma";
 import { Odontograma } from "./Odontograma";
 import type { SeleccionOdontograma } from "./Odontograma";
@@ -56,6 +59,7 @@ export function OdontogramaPage() {
   const [seleccion, setSeleccion] = useState<SeleccionOdontograma | null>(null);
   const [cuadranteElegido, setCuadranteElegido] = useState<number | null>(null);
   const [vista, setVista] = useState<"2d" | "3d">(vistaInicial);
+  const [historialFdi, setHistorialFdi] = useState<number | null>(null);
 
   function cambiarVista(nueva: "2d" | "3d") {
     setVista(nueva);
@@ -73,8 +77,10 @@ export function OdontogramaPage() {
     visitId: visitId ?? "",
     centroId: sesion?.centroId ?? "",
     uid: sesion?.uid ?? "",
+    fecha: atencion.fecha,
     soloLectura,
   });
+  const { items: plan } = usePlan(patientId ?? "", sesion?.centroId ?? "");
 
   if (!patientId || !visitId || !sesion) {
     return null;
@@ -122,6 +128,19 @@ export function OdontogramaPage() {
         <p role="alert" className="text-sm text-danger">
           {error}
         </p>
+      )}
+
+      {odo.copiadoDe && (
+        <div className="flex flex-wrap items-center gap-3 rounded-md border border-line bg-surface p-3 text-sm text-ink-soft">
+          <span>
+            Odontograma copiado de la atención del {odo.copiadoDe.fecha}. Actualiza lo que cambió hoy.
+          </span>
+          {!soloLectura && (
+            <Button size="sm" variant="secondary" onClick={odo.empezarEnBlanco}>
+              Empezar en blanco
+            </Button>
+          )}
+        </div>
       )}
 
       <div className="flex flex-wrap items-center gap-3">
@@ -254,6 +273,15 @@ export function OdontogramaPage() {
         </div>
       </div>
 
+      <TratamientosDeAtencion
+        patientId={patientId}
+        centroId={sesion.centroId}
+        visitId={visitId}
+        fecha={atencion.fecha}
+        uid={sesion.uid}
+        soloLectura={soloLectura}
+      />
+
       <section aria-labelledby="titulo-higiene" className="space-y-2">
         <h2 id="titulo-higiene" className="text-base font-semibold">
           Índices de higiene por diente
@@ -291,6 +319,19 @@ export function OdontogramaPage() {
           setSeleccion(null);
         }}
         onCerrar={() => setSeleccion(null)}
+        onVerHistorial={() => {
+          if (!seleccion) return;
+          setHistorialFdi(seleccion.fdi);
+          setSeleccion(null);
+        }}
+      />
+
+      <HistorialDiente
+        patientId={patientId}
+        centroId={sesion.centroId}
+        fdi={historialFdi}
+        plan={plan ?? []}
+        onCerrar={() => setHistorialFdi(null)}
       />
 
       <ConfirmarDialog

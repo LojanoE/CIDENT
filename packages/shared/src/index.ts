@@ -10,3 +10,4 @@ export * from "./agenda.js";
 export * from "./presupuesto.js";
 export * from "./contabilidad.js";
 export * from "./portal.js";
+export * from "./historialDiente.js";

@@ -156,7 +156,14 @@ export function PortalPacientePage() {
           <ul className="divide-y divide-line rounded-lg border border-line bg-surface">
             {plan.tratamientos.map((t, i) => (
               <li key={`${t.tratamiento}-${i}`} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
-                <span className="min-w-0">{t.tratamiento}</span>
+                <span className="min-w-0">
+                  {t.realizado && (
+                    <span aria-label="Realizado" className="mr-1 font-semibold text-ok">
+                      ✓
+                    </span>
+                  )}
+                  {t.tratamiento}
+                </span>
                 <span className="shrink-0 text-ink-soft">
                   {t.pieza ? `Pieza ${t.pieza}` : ""}
                   {t.cantidad > 1 ? ` ×${t.cantidad}` : ""}

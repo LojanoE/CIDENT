@@ -52,6 +52,12 @@ export const router = createBrowserRouter([
                 }),
               },
               {
+                path: "plan",
+                lazy: async () => ({
+                  Component: (await import("../features/plan/PlanTratamientoPage")).PlanTratamientoPage,
+                }),
+              },
+              {
                 path: "atenciones",
                 children: [
                   { index: true, element: <AtencionesListPage /> },

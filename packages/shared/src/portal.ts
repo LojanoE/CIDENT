@@ -1,4 +1,4 @@
-import type { EnlacePortal, Presupuesto, PortalPacienteDatos } from "./types.js";
+import type { EnlacePortal, ItemPlan, Presupuesto, PortalPacienteDatos } from "./types.js";
 
 export const PORTAL_VIGENCIA_DIAS = 30;
 
@@ -24,6 +24,24 @@ export function planSinMontos(
       tratamiento: l.tratamiento,
       ...(l.pieza ? { pieza: l.pieza } : {}),
       cantidad: l.cantidad,
+    })),
+  };
+}
+
+/** Plan de tratamiento propio del paciente para el portal: pendientes y realizados, sin los descartados. */
+export function planTratamientoParaPortal(
+  items: ReadonlyArray<Pick<ItemPlan, "tratamiento" | "pieza" | "estado" | "orden">>,
+  fecha: string,
+): PortalPacienteDatos["plan"] {
+  const vigentes = items.filter((i) => i.estado !== "descartado").sort((a, b) => a.orden - b.orden);
+  if (vigentes.length === 0) return null;
+  return {
+    fecha,
+    tratamientos: vigentes.map((i) => ({
+      tratamiento: i.tratamiento,
+      ...(i.pieza ? { pieza: i.pieza } : {}),
+      cantidad: 1,
+      realizado: i.estado === "realizado",
     })),
   };
 }
