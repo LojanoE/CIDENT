@@ -1,15 +1,19 @@
 import type { Odontograma as OdontogramaData, TipoOdontograma, Zona } from "@cident/shared";
 import { FDI_PERMANENTES, FDI_TEMPORALES, arcadaDe } from "@cident/shared";
-import { OrbitControls } from "@react-three/drei";
+import { Environment, Lightformer, OrbitControls } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { EffectComposer, N8AO, SMAA, ToneMapping } from "@react-three/postprocessing";
+import { ToneMappingMode } from "postprocessing";
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Box3, Vector3 } from "three";
-import type { Group, PerspectiveCamera } from "three";
+import type { Group, Mesh, PerspectiveCamera } from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { cn } from "../../../lib/cn";
 import type { SeleccionOdontograma } from "../Odontograma";
 import { Diente3D } from "./Diente3D";
+import { Encia3D } from "./Encia3D";
+import { calidadAlta } from "./calidad";
 
 type Vista = "frente" | "superior" | "inferior";
 
@@ -77,7 +81,13 @@ function Camara({
   useEffect(() => {
     if (!medida.current && boca.current) {
       // Se mide una sola vez, con las arcadas aún cerradas; la apertura se suma aparte.
-      const caja = new Box3().setFromObject(boca.current);
+      // Solo los dientes: la encía (marcada con `userData.encia`) no debe agrandar el encuadre.
+      const caja = new Box3();
+      boca.current.updateWorldMatrix(true, true);
+      boca.current.traverse((obj) => {
+        if (obj.userData.encia || !(obj as Mesh).isMesh || obj.parent?.userData.encia) return;
+        caja.expandByObject(obj, false);
+      });
       if (!caja.isEmpty()) {
         const t = caja.getSize(new Vector3());
         medida.current = { centro: caja.getCenter(new Vector3()), ancho: t.x, alto: t.y + 2 * APERTURA, fondo: t.z };
@@ -116,6 +126,8 @@ export function Odontograma3D({
 }: Odontograma3DProps) {
   const [vista, setVista] = useState<Vista>("frente");
   const [abierta, setAbierta] = useState(true);
+  const [encia, setEncia] = useState(true);
+  const [alta] = useState(calidadAlta);
   const controles = useRef<OrbitControlsImpl | null>(null);
   const boca = useRef<Group>(null);
 
@@ -130,6 +142,7 @@ export function Odontograma3D({
         fdi={fdi}
         estado={dientes[String(fdi)]}
         soloLectura={soloLectura}
+        encia={encia}
         seleccionada={seleccion?.fdi === fdi ? seleccion.zona : null}
         generalSeleccionado={seleccion?.fdi === fdi && seleccion.zona === null}
         onZonaClick={onZonaClick}
@@ -153,18 +166,52 @@ export function Odontograma3D({
       >
         <Canvas
           frameloop="demand"
-          dpr={[1, 2]}
+          dpr={alta ? [1, 2] : [1, 1.5]}
+          shadows={alta ? "percentage" : false}
+          gl={{ antialias: !alta }}
           camera={{ position: [0, 2, 14], fov: 35, near: 0.1, far: 100 }}
         >
-          <ambientLight intensity={0.55} />
-          <hemisphereLight args={["#ffffff", "#c9b9a0", 0.5]} />
-          <directionalLight position={[4, 8, 10]} intensity={1.6} />
-          <directionalLight position={[-6, -4, 6]} intensity={0.5} />
+          <ambientLight intensity={0.25} />
+          <directionalLight
+            position={[4, 8, 10]}
+            intensity={1.5}
+            castShadow={alta}
+            shadow-mapSize={[1024, 1024]}
+            shadow-bias={-0.0005}
+            shadow-normalBias={0.02}
+            shadow-camera-left={-9}
+            shadow-camera-right={9}
+            shadow-camera-top={9}
+            shadow-camera-bottom={-9}
+          />
+          <directionalLight position={[-6, -4, 6]} intensity={0.35} />
+
+          {/* Entorno de estudio armado con paneles locales: sin descargas, funciona sin conexión. */}
+          <Environment resolution={256} frames={1}>
+            <Lightformer form="rect" intensity={2.2} color="#ffffff" position={[0, 5, 5]} rotation={[-Math.PI / 3, 0, 0]} scale={[10, 4, 1]} />
+            <Lightformer form="rect" intensity={1.2} color="#fff3e0" position={[-6, 1, 3]} rotation={[0, Math.PI / 2.5, 0]} scale={[6, 4, 1]} />
+            <Lightformer form="rect" intensity={1.2} color="#e6f0ff" position={[6, 1, 3]} rotation={[0, -Math.PI / 2.5, 0]} scale={[6, 4, 1]} />
+            <Lightformer form="ring" intensity={0.8} color="#ffffff" position={[0, -3, 6]} scale={4} />
+          </Environment>
 
           <group ref={boca}>
-            <Deslizable destino={abierta ? APERTURA : 0}>{superiores.map(renderDiente)}</Deslizable>
-            <Deslizable destino={abierta ? -APERTURA : 0}>{inferiores.map(renderDiente)}</Deslizable>
+            <Deslizable destino={abierta ? APERTURA : 0}>
+              {encia && <Encia3D superior temporal={tipo !== "adulto"} />}
+              {superiores.map(renderDiente)}
+            </Deslizable>
+            <Deslizable destino={abierta ? -APERTURA : 0}>
+              {encia && <Encia3D superior={false} temporal={tipo !== "adulto"} />}
+              {inferiores.map(renderDiente)}
+            </Deslizable>
           </group>
+
+          {alta && (
+            <EffectComposer multisampling={0}>
+              <N8AO aoRadius={0.6} intensity={2.2} distanceFalloff={1} quality="medium" />
+              <SMAA />
+              <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
+            </EffectComposer>
+          )}
 
           <OrbitControls
             ref={controles}
@@ -191,14 +238,19 @@ export function Odontograma3D({
               </button>
             ))}
           </div>
-          <button
-            type="button"
-            aria-pressed={abierta}
-            onClick={() => setAbierta((v) => !v)}
-            className={cn("pointer-events-auto", boton(abierta))}
-          >
-            {abierta ? "Cerrar boca" : "Abrir boca"}
-          </button>
+          <div className="pointer-events-auto flex gap-1">
+            <button type="button" aria-pressed={encia} onClick={() => setEncia((v) => !v)} className={boton(encia)}>
+              Encía
+            </button>
+            <button
+              type="button"
+              aria-pressed={abierta}
+              onClick={() => setAbierta((v) => !v)}
+              className={boton(abierta)}
+            >
+              {abierta ? "Cerrar boca" : "Abrir boca"}
+            </button>
+          </div>
         </div>
       </div>
       <p className="text-13 text-ink-soft">

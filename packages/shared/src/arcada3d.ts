@@ -50,7 +50,7 @@ const SEPARACION_OCLUSAL = 0.06;
 const PASO_ARCO = 0.01;
 
 /** Punto de la curva a `s` cm de la línea media (por longitud de arco). */
-function puntoEnArco(s: number): { x: number; z: number } {
+export function puntoEnArco(s: number): { x: number; z: number } {
   let x = 0;
   let recorrido = 0;
   while (recorrido < s) {
@@ -98,6 +98,31 @@ export function posicionPieza(fdi: number): PosicionPieza {
     ancho,
     invertido: superior,
   };
+}
+
+/** Longitud de arco (cm) desde la línea media hasta el final de la última pieza de un hemiarco. */
+export function longitudHemiarco(temporal: boolean): number {
+  const tabla = temporal ? ANCHO_TEMPORAL : ANCHO_PERMANENTE;
+  return 0.03 + tabla.reduce((suma, ancho) => suma + ancho, 0);
+}
+
+/**
+ * Festoneado de la encía a `s` cm de la línea media (por longitud de arco):
+ * 0 en el centro de cada pieza (la encía baja hacia la raíz) y 1 en las papilas
+ * entre piezas (la encía sube). Fuera del hemiarco devuelve 1.
+ */
+export function margenGingival(s: number, temporal: boolean): number {
+  const tabla = temporal ? ANCHO_TEMPORAL : ANCHO_PERMANENTE;
+  let inicio = 0.03;
+  for (let n = 1; n < tabla.length; n += 1) {
+    const ancho = tabla[n] ?? 0;
+    if (s < inicio + ancho) {
+      const t = (s - inicio) / ancho; // 0..1 dentro de la pieza
+      return 0.5 + 0.5 * Math.cos(2 * Math.PI * t);
+    }
+    inicio += ancho;
+  }
+  return 1;
 }
 
 /** Eje local del diente (±x, ±y, ±z) hacia el que mira cada superficie. */

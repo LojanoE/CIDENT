@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { anchoDePieza, apariencia, direccionDeZona, posicionPieza, tipoDePieza } from "./arcada3d.js";
+import {
+  anchoDePieza,
+  apariencia,
+  direccionDeZona,
+  longitudHemiarco,
+  margenGingival,
+  posicionPieza,
+  tipoDePieza,
+} from "./arcada3d.js";
 import { FDI_PERMANENTES, FDI_TEMPORALES } from "./odontograma.js";
 import type { EstadoDiente } from "./types.js";
 
@@ -61,6 +69,24 @@ describe("posicionPieza", () => {
       const minimo = (anchoDePieza(fdi) + anchoDePieza(siguiente)) / 2;
       expect(distancia).toBeGreaterThan(minimo * 0.9);
     }
+  });
+});
+
+describe("margenGingival", () => {
+  it("baja en el centro de cada pieza y sube en las papilas", () => {
+    // Incisivo central permanente: ocupa [0.03, 0.88).
+    expect(margenGingival(0.03 + 0.85 / 2, false)).toBeCloseTo(0);
+    expect(margenGingival(0.03, false)).toBeCloseTo(1);
+    expect(margenGingival(0.03 + 0.85 + 0.001, false)).toBeCloseTo(1, 1);
+  });
+
+  it("fuera del hemiarco devuelve 1", () => {
+    expect(margenGingival(longitudHemiarco(false) + 1, false)).toBe(1);
+    expect(margenGingival(longitudHemiarco(true) + 1, true)).toBe(1);
+  });
+
+  it("el hemiarco temporal es más corto que el permanente", () => {
+    expect(longitudHemiarco(true)).toBeLessThan(longitudHemiarco(false));
   });
 });
 
