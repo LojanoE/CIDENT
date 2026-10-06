@@ -24,12 +24,20 @@ export function useCentros(): Centro[] | null {
  * `logo-respaldo.png` (Luna-Dental) servido por la propia app web.
  * `nombre` es `null` mientras carga.
  */
-export function useCentroActual(centroId: string | undefined): { nombre: string | null; logoUrl: string } {
+export function useCentroActual(centroId: string | undefined): {
+  nombre: string | null;
+  logoUrl: string;
+  plantillaRecordatorio?: string;
+  direccion?: string;
+  telefono?: string;
+} {
   const [logoUrl, setLogoUrl] = useState<string>(LOGO_RESPALDO);
   const [nombre, setNombre] = useState<string | null>(null);
+  const [datos, setDatos] = useState<{ plantillaRecordatorio?: string; direccion?: string; telefono?: string }>({});
 
   useEffect(() => {
     setNombre(null);
+    setDatos({});
     if (!centroId) {
       setLogoUrl(LOGO_RESPALDO);
       return;
@@ -37,6 +45,11 @@ export function useCentroActual(centroId: string | undefined): { nombre: string 
     return onSnapshot(doc(db, "centros", centroId), (snap) => {
       const centro = snap.data() as Centro | undefined;
       setNombre(centro?.nombre || centroId);
+      setDatos({
+        plantillaRecordatorio: centro?.plantillaRecordatorio,
+        direccion: centro?.direccion,
+        telefono: centro?.telefono,
+      });
       const storagePath = centro?.logo?.storagePath;
       if (!storagePath) {
         setLogoUrl(LOGO_RESPALDO);
@@ -48,7 +61,7 @@ export function useCentroActual(centroId: string | undefined): { nombre: string 
     });
   }, [centroId]);
 
-  return { nombre, logoUrl };
+  return { nombre, logoUrl, ...datos };
 }
 
 /** URL del logo del centro (ver `useCentroActual`). */

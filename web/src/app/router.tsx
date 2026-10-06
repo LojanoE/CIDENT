@@ -52,6 +52,12 @@ export const router = createBrowserRouter([
                 }),
               },
               {
+                path: "ficha",
+                lazy: async () => ({
+                  Component: (await import("../features/pacientes/FichaMedicaPage")).FichaMedicaPage,
+                }),
+              },
+              {
                 path: "plan",
                 lazy: async () => ({
                   Component: (await import("../features/plan/PlanTratamientoPage")).PlanTratamientoPage,

@@ -31,7 +31,7 @@ export const actualizarCentro = onCall({ region: "southamerica-east1" }, async (
   if (!parsed.success) {
     throw new HttpsError("invalid-argument", "Datos inválidos.");
   }
-  const { centroId, nombre, direccion, telefono, piePdf, logo, quitarLogo } = parsed.data;
+  const { centroId, nombre, direccion, telefono, piePdf, plantillaRecordatorio, logo, quitarLogo } = parsed.data;
 
   const db = getFirestore();
   const centroRef = db.collection("centros").doc(centroId);
@@ -52,6 +52,7 @@ export const actualizarCentro = onCall({ region: "southamerica-east1" }, async (
   if (direccion !== undefined) actualizacion.direccion = direccion;
   if (telefono !== undefined) actualizacion.telefono = telefono;
   if (piePdf !== undefined) actualizacion.piePdf = piePdf;
+  if (plantillaRecordatorio !== undefined) actualizacion.plantillaRecordatorio = plantillaRecordatorio;
 
   let logoCambiado: "subido" | "quitado" | null = null;
 

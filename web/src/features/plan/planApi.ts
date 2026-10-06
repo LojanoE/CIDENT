@@ -134,6 +134,16 @@ export async function importarDesdePresupuesto(
   return creados;
 }
 
+/**
+ * Al aceptar un presupuesto: lee el plan actual y le agrega sus líneas. Idempotente: si ese
+ * presupuesto ya se importó (p. ej. se aceptó, se revirtió y se volvió a aceptar) no duplica.
+ */
+export async function importarPresupuestoAceptado(presupuesto: Presupuesto, uid: string): Promise<number> {
+  const snap = await getDocs(query(itemsRef(presupuesto.patientId), where("centroId", "==", presupuesto.centroId)));
+  const existentes = snap.docs.map((d) => d.data() as ItemPlan);
+  return importarDesdePresupuesto(presupuesto, uid, existentes);
+}
+
 /** Presupuestos del paciente que aún pueden convertirse en plan (pendientes o aceptados). */
 export async function obtenerPresupuestosImportables(patientId: string, centroId: string): Promise<Presupuesto[]> {
   const snap = await getDocs(

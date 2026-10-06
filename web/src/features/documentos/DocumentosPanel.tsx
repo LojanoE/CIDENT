@@ -1,8 +1,8 @@
-import type { Certificado, CertificadoInput, EstadoPresupuesto, Presupuesto, Receta, RecetaInput } from "@cident/shared";
-import { ESTADOS_PRESUPUESTO, certificadoSchema, recetaSchema } from "@cident/shared";
+import type { Certificado, Consentimiento, Paciente, CertificadoInput, EstadoPresupuesto, Presupuesto, Receta, RecetaInput } from "@cident/shared";
+import { ESTADOS_PRESUPUESTO, alertasAnamnesis, certificadoSchema, recetaSchema } from "@cident/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { onSnapshot, query, where } from "firebase/firestore";
-import { Download, FileText } from "lucide-react";
+import { AlertTriangle, Download, FileText } from "lucide-react";
 import { useEffect, useId, useState, type ReactNode } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useParams } from "react-router-dom";
@@ -11,10 +11,14 @@ import { Badge, Button, Card, CardBody, Field, Select, Textarea, useToast, type 
 import { mensajeError } from "../../lib/mensajeError";
 import { obtenerUrlDescarga } from "../adjuntos/adjuntosApi";
 import { useAtencion } from "../atenciones/useAtencion";
+import { obtenerPaciente } from "../pacientes/pacientesApi";
+import { importarPresupuestoAceptado } from "../plan/planApi";
+import { ConsentimientoForm } from "./ConsentimientoForm";
 import { PresupuestoForm } from "./PresupuestoForm";
 import {
   actualizarEstadoPresupuesto,
   certificadosCollection,
+  consentimientosCollection,
   generarCertificado,
   generarReceta,
   generarResumenAtencion,
@@ -36,6 +40,17 @@ const certificadoPorDefecto: CertificadoInput = {
 
 function RecetaForm({ patientId, visitId }: { patientId: string; visitId: string }) {
   const toast = useToast();
+  const [paciente, setPaciente] = useState<Paciente | null>(null);
+  useEffect(() => {
+    let vigente = true;
+    obtenerPaciente(patientId)
+      .then((p) => vigente && setPaciente(p))
+      .catch(() => undefined); // Las alertas son un aviso extra: sin ellas la receta se puede generar igual.
+    return () => {
+      vigente = false;
+    };
+  }, [patientId]);
+  const alertas = paciente ? alertasAnamnesis(paciente.anamnesis, paciente.alergias).filter((a) => a.nivel === "alta") : [];
   const {
     register,
     handleSubmit,
@@ -55,6 +70,12 @@ function RecetaForm({ patientId, visitId }: { patientId: string; visitId: string
 
   return (
     <form onSubmit={handleSubmit(enviar)} noValidate className="space-y-3">
+      {alertas.length > 0 && (
+        <div role="alert" className="flex items-start gap-2 rounded-md border border-danger/30 bg-danger/10 p-3 text-sm text-danger">
+          <AlertTriangle aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>Tener en cuenta al recetar: {alertas.map((a) => a.texto).join(" · ")}</span>
+        </div>
+      )}
       <Field label="Diagnóstico" error={errors.diagnostico?.message}>
         <Textarea rows={2} {...register("diagnostico")} />
       </Field>
@@ -164,11 +185,23 @@ function EstadoDelPresupuesto({ presupuesto, editable }: { presupuesto: Presupue
       aria-label={`Estado de ${presupuesto.codigoUnico}`}
       value={presupuesto.estado}
       className="min-w-32"
-      onChange={(e) =>
-        actualizarEstadoPresupuesto(presupuesto.patientId, presupuesto.id, e.target.value as EstadoPresupuesto, sesion.uid).catch(
-          (err) => toast.error(mensajeError(err)),
-        )
-      }
+      onChange={async (e) => {
+        const nuevo = e.target.value as EstadoPresupuesto;
+        try {
+          await actualizarEstadoPresupuesto(presupuesto.patientId, presupuesto.id, nuevo, sesion.uid);
+        } catch (err) {
+          toast.error(mensajeError(err));
+          return;
+        }
+        // Aceptar un presupuesto lo lleva al plan de tratamiento; rechazarlo no toca el plan.
+        if (nuevo !== "aceptado") return;
+        try {
+          const n = await importarPresupuestoAceptado(presupuesto, sesion.uid);
+          if (n > 0) toast.ok(`${n} ${n === 1 ? "tratamiento agregado" : "tratamientos agregados"} al plan.`);
+        } catch (err) {
+          toast.error(`El presupuesto quedó aceptado, pero no se pudo agregar al plan: ${mensajeError(err)}`);
+        }
+      }}
     >
       {ESTADOS_PRESUPUESTO.map((e) => (
         <option key={e} value={e}>
@@ -251,6 +284,7 @@ export function DocumentosPanel() {
 
   const [recetas, setRecetas] = useState<Receta[]>([]);
   const [certificados, setCertificados] = useState<Certificado[]>([]);
+  const [consentimientos, setConsentimientos] = useState<Consentimiento[]>([]);
   const [presupuestos, setPresupuestos] = useState<Presupuesto[]>([]);
   const [error, setError] = useState<string | null>(null);
 
@@ -285,6 +319,24 @@ export function DocumentosPanel() {
         const lista = snap.docs.map((d) => d.data() as Certificado);
         lista.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
         setCertificados(lista);
+      },
+      (err) => setError(mensajeError(err)),
+    );
+  }, [patientId, visitId, centroId]);
+
+  useEffect(() => {
+    if (!patientId || !visitId) return;
+    const q = query(
+      consentimientosCollection(patientId),
+      where("visitId", "==", visitId),
+      where("centroId", "==", centroId),
+    );
+    return onSnapshot(
+      q,
+      (snap) => {
+        const lista = snap.docs.map((d) => d.data() as Consentimiento);
+        lista.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+        setConsentimientos(lista);
       },
       (err) => setError(mensajeError(err)),
     );
@@ -344,6 +396,18 @@ export function DocumentosPanel() {
           </CardBody>
         </Card>
       </div>
+
+      <Card>
+        <CardBody className="space-y-4">
+          <h3 className="text-base font-semibold">Consentimiento informado</h3>
+          {!soloLectura && <ConsentimientoForm patientId={patientId} visitId={visitId} />}
+          <ListaDocumentos
+            titulo="Consentimientos firmados"
+            documentos={consentimientos}
+            etiqueta={(c) => `${c.titulo} · ${c.tratamiento}`}
+          />
+        </CardBody>
+      </Card>
 
       <Card>
         <CardBody className="space-y-4">

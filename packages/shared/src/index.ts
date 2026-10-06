@@ -11,3 +11,7 @@ export * from "./presupuesto.js";
 export * from "./contabilidad.js";
 export * from "./portal.js";
 export * from "./historialDiente.js";
+export * from "./recordatorio.js";
+export * from "./anamnesis.js";
+export * from "./consentimiento.js";
+export * from "./indicadores.js";

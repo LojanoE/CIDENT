@@ -26,6 +26,8 @@ export interface Centro {
   logo?: LogoCentro | null;
   /** Último % de IVA usado en un presupuesto; prellena el formulario. */
   presupuestoIva?: number;
+  /** Mensaje del recordatorio de cita por WhatsApp, con variables `{paciente}`, `{fecha}`... Ausente = el por defecto. */
+  plantillaRecordatorio?: string;
 }
 
 export interface Usuario {
@@ -62,9 +64,34 @@ export interface Paciente {
   direccion: string;
   email: string;
   alergias: string;
+  anamnesis?: Anamnesis;
   createdAt: string;
   updatedAt: string;
   createdBy: string; // uid
+}
+
+/** Ficha médica del paciente: antecedentes que condicionan la atención y las recetas. */
+export interface Anamnesis {
+  diabetes: boolean;
+  hipertension: boolean;
+  cardiopatia: boolean;
+  anticoagulantes: boolean;
+  coagulopatia: boolean;
+  embarazo: boolean;
+  asma: boolean;
+  epilepsia: boolean;
+  hepatitis: boolean;
+  vih: boolean;
+  fumador: boolean;
+  bruxismo: boolean;
+  alergiaAnestesia: boolean;
+  alergiaPenicilina: boolean;
+  medicacion: string;
+  enfermedades: string;
+  cirugias: string;
+  observaciones: string;
+  actualizadaAt?: string;
+  actualizadaPor?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -246,6 +273,25 @@ export interface Certificado {
   createdAt: string;
 }
 
+export interface Consentimiento {
+  id: string;
+  centroId: string;
+  patientId: string;
+  visitId: string;
+  fecha: string;
+  plantilla: string;
+  titulo: string;
+  tratamiento: string;
+  pieza?: string;
+  firmante: { nombre: string; cedula: string; relacion: "paciente" | "representante" };
+  /** SHA-256 (hex) del texto firmado, impreso en el PDF como constancia. */
+  hashTexto: string;
+  codigoUnico: string;
+  archivo: ArchivoRef;
+  emitidoPor: string;
+  createdAt: string;
+}
+
 export const ESTADOS_PRESUPUESTO = ["pendiente", "aceptado", "rechazado"] as const;
 export type EstadoPresupuesto = (typeof ESTADOS_PRESUPUESTO)[number];
 
@@ -409,6 +455,9 @@ export interface Cita {
 
   /** Atención iniciada desde esta cita, si ya se abrió. */
   visitId: string | null;
+
+  /** ISO de la última vez que se abrió el recordatorio por WhatsApp (solo informativo). */
+  recordatorioEnviadoAt?: string;
 
   /**
    * Autoría en el propio documento. Las citas se escriben desde el cliente

@@ -88,6 +88,16 @@ export async function cancelarCita(
   });
 }
 
+/** Deja constancia de que se abrió el recordatorio por WhatsApp de la cita. */
+export async function marcarRecordatorioEnviado(appointmentId: string, uid: string): Promise<void> {
+  const ahora = new Date().toISOString();
+  await updateDoc(doc(appointmentsCollection(), appointmentId), {
+    recordatorioEnviadoAt: ahora,
+    updatedAt: ahora,
+    updatedBy: uid,
+  });
+}
+
 export async function cambiarEstadoCita(
   appointmentId: string,
   estado: EstadoCita,

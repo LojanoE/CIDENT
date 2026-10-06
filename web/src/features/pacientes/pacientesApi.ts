@@ -1,4 +1,4 @@
-import type { Paciente, PacienteInput } from "@cident/shared";
+import type { Anamnesis, AnamnesisInput, Paciente, PacienteInput } from "@cident/shared";
 import {
   collection,
   doc,
@@ -96,4 +96,15 @@ export async function actualizarPaciente(
 
 export function pacientesCollection(firestore: Firestore = db) {
   return collection(firestore, "patients");
+}
+
+/** Guarda la ficha médica (anamnesis) del paciente, con quién y cuándo la actualizó. */
+export async function guardarAnamnesis(
+  patientId: string,
+  datos: AnamnesisInput,
+  uid: string,
+): Promise<Anamnesis> {
+  const anamnesis: Anamnesis = { ...datos, actualizadaAt: new Date().toISOString(), actualizadaPor: uid };
+  await updateDoc(doc(db, "patients", patientId), { anamnesis, updatedAt: anamnesis.actualizadaAt });
+  return anamnesis;
 }

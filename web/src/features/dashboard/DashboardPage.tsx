@@ -13,6 +13,7 @@ import { ETIQUETA_ESTADO } from "../agenda/estados";
 import { useCitasDelRango } from "../agenda/useAgenda";
 import { ETIQUETA_FORMA_PAGO, dinero } from "../pagos/pagosApi";
 import { GraficoIngresos } from "./GraficoIngresos";
+import { IndicadoresClinicos } from "./IndicadoresClinicos";
 import { useResumenFinanciero } from "./useResumenFinanciero";
 import { useCentroActual } from "../centros/centrosApi";
 import { hoyLocal } from "../agenda/fechas";
@@ -177,6 +178,8 @@ export function DashboardPage() {
           </>
         )}
       </section>
+
+      <IndicadoresClinicos centroId={sesion?.centroId} />
 
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         <section aria-label="Citas de hoy" className="space-y-2">

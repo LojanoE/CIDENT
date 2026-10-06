@@ -7,20 +7,11 @@ import { useAuth } from "../../app/AuthProvider";
 import { db } from "../../app/firebase";
 import { Button, Card, CardBody, CardHeader, useToast } from "../../components/ui";
 import { mensajeError } from "../../lib/mensajeError";
+import { enlaceWhatsApp } from "../../lib/whatsapp";
 import { crearEnlacePortal, revocarEnlacePortal, urlPortal } from "./portalApi";
 
 function fechaCorta(iso: string): string {
   return new Date(iso).toLocaleDateString("es", { day: "2-digit", month: "2-digit", year: "numeric" });
-}
-
-/** Solo dígitos; sin prefijo de país no se puede armar un wa.me confiable, así que se omite el número. */
-function enlaceWhatsApp(telefono: string, url: string, nombre: string): string {
-  const texto = encodeURIComponent(`Hola ${nombre}, aquí puedes ver tu boca en 3D y tu plan de tratamiento: ${url}`);
-  const digitos = telefono.replace(/\D/g, "");
-  let numero = "";
-  if (digitos.startsWith("593")) numero = digitos;
-  else if (digitos.startsWith("09") && digitos.length === 10) numero = `593${digitos.slice(1)}`;
-  return `https://wa.me/${numero}?text=${texto}`;
 }
 
 /** Tarjeta «Portal del paciente»: genera, comparte y revoca el enlace público de solo lectura. */
@@ -119,7 +110,10 @@ export function TarjetaPortal({ paciente }: { paciente: Paciente }) {
                   <Copy aria-hidden className="h-4 w-4" /> Copiar enlace
                 </Button>
                 <a
-                  href={enlaceWhatsApp(paciente.telefono, nuevo.url, paciente.nombres.split(/\s+/)[0] ?? "")}
+                  href={enlaceWhatsApp(
+                    paciente.telefono,
+                    `Hola ${paciente.nombres.split(/\s+/)[0] ?? ""}, aquí puedes ver tu boca en 3D y tu plan de tratamiento: ${nuevo.url}`,
+                  )}
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex min-h-touch select-none items-center justify-center gap-2 rounded-md border border-input bg-surface px-3 text-13 font-medium text-ink hover:bg-accent-wash md:min-h-9"

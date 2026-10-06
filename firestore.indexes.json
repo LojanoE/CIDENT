@@ -90,6 +90,14 @@
       ]
     },
     {
+      "collectionGroup": "planTratamiento",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "centroId", "order": "ASCENDING" },
+        { "fieldPath": "realizado.fecha", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "attachments",
       "queryScope": "COLLECTION",
       "fields": [

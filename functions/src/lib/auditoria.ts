@@ -11,6 +11,7 @@ export type AccionAuditoria =
   | "centro_actualizado"
   | "receta_generada"
   | "certificado_generado"
+  | "consentimiento_generado"
   | "presupuesto_generado"
   | "pago_registrado"
   | "pago_anulado"

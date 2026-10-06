@@ -18,6 +18,7 @@ export { anularAtencion } from "./atenciones/anularAtencion.js";
 
 export { generarReceta } from "./documentos/generarReceta.js";
 export { generarCertificado } from "./documentos/generarCertificado.js";
+export { generarConsentimiento } from "./documentos/generarConsentimiento.js";
 export { generarPresupuesto } from "./documentos/generarPresupuesto.js";
 export { registrarPago } from "./pagos/registrarPago.js";
 export { anularPago } from "./pagos/anularPago.js";

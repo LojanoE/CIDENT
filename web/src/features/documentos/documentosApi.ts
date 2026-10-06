@@ -1,7 +1,9 @@
 import type {
   Certificado,
   EstadoPresupuesto,
+  Consentimiento,
   GenerarCertificadoInput,
+  GenerarConsentimientoInput,
   GenerarPresupuestoInput,
   GenerarRecetaInput,
   GenerarResumenAtencionInput,
@@ -19,6 +21,10 @@ export function recetasCollection(patientId: string, firestore: Firestore = db) 
 
 export function certificadosCollection(patientId: string, firestore: Firestore = db) {
   return collection(firestore, "patients", patientId, "certificates");
+}
+
+export function consentimientosCollection(patientId: string, firestore: Firestore = db) {
+  return collection(firestore, "patients", patientId, "consents");
 }
 
 export function presupuestosCollection(patientId: string, firestore: Firestore = db) {
@@ -40,6 +46,11 @@ const generarCertificadoCallable = httpsCallable<
   { id: string; codigo: string; storagePath: string }
 >(functions, "generarCertificado");
 
+const generarConsentimientoCallable = httpsCallable<
+  GenerarConsentimientoInput,
+  { id: string; codigo: string; storagePath: string }
+>(functions, "generarConsentimiento");
+
 const generarResumenAtencionCallable = httpsCallable<GenerarResumenAtencionInput, { storagePath: string }>(
   functions,
   "generarResumenAtencion",
@@ -52,6 +63,11 @@ export async function generarReceta(input: GenerarRecetaInput) {
 
 export async function generarCertificado(input: GenerarCertificadoInput) {
   const res = await generarCertificadoCallable(input);
+  return res.data;
+}
+
+export async function generarConsentimiento(input: GenerarConsentimientoInput) {
+  const res = await generarConsentimientoCallable(input);
   return res.data;
 }
 
@@ -92,4 +108,4 @@ export async function obtenerIvaPorDefecto(centroId: string): Promise<number> {
   return typeof iva === "number" ? iva : 0;
 }
 
-export type { Certificado, Presupuesto, Receta, TratamientoCatalogo };
+export type { Certificado, Consentimiento, Presupuesto, Receta, TratamientoCatalogo };

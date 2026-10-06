@@ -1,6 +1,9 @@
 import {
   actualizarCentroSchema,
+  armarRecordatorio,
   LOGO_MAX_BYTES,
+  PLANTILLA_RECORDATORIO_DEFECTO,
+  VARIABLES_RECORDATORIO,
   type ActualizarCentroInput,
   type Centro,
 } from "@cident/shared";
@@ -20,6 +23,7 @@ import {
   Input,
   Select,
   Skeleton,
+  Textarea,
   useToast,
 } from "../../components/ui";
 import { mensajeError } from "../../lib/mensajeError";
@@ -99,6 +103,7 @@ function valoresDe(centro: Centro): ActualizarCentroInput {
     direccion: centro.direccion,
     telefono: centro.telefono,
     piePdf: centro.piePdf,
+    plantillaRecordatorio: centro.plantillaRecordatorio ?? PLANTILLA_RECORDATORIO_DEFECTO,
   };
 }
 
@@ -114,6 +119,8 @@ function CentroForm({ centro }: { centro: Centro }) {
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<ActualizarCentroInput>({
     resolver: zodResolver(actualizarCentroSchema),
@@ -180,6 +187,18 @@ function CentroForm({ centro }: { centro: Centro }) {
     }
   };
 
+  const plantilla = watch("plantillaRecordatorio");
+  const vistaPrevia = armarRecordatorio(plantilla, {
+    paciente: "María Pérez",
+    inicio: "2026-10-07T15:30",
+    profesional: "Dr. Ejemplo",
+    centro: centro.nombre,
+    direccion: centro.direccion,
+    telefono: centro.telefono,
+  });
+  const insertarVariable = (clave: string) =>
+    setValue("plantillaRecordatorio", `${plantilla ?? ""}{${clave}}`, { shouldDirty: true });
+
   const vistaLogo = previewLocal ?? (quitarLogo ? LOGO_RESPALDO : logoActualUrl);
   const hayLogoPendiente = logoNuevo !== null || quitarLogo;
 
@@ -236,6 +255,39 @@ function CentroForm({ centro }: { centro: Centro }) {
           >
             <Input {...register("piePdf")} />
           </Field>
+          <Field
+            label="Mensaje de recordatorio de citas"
+            hint="Se envía por WhatsApp desde el botón «Recordar» de cada cita. Toca una variable para agregarla al final."
+            error={errors.plantillaRecordatorio?.message}
+          >
+            <Textarea rows={4} {...register("plantillaRecordatorio")} />
+          </Field>
+          <div className="-mt-2 space-y-2">
+            <div className="flex flex-wrap gap-1.5">
+              {VARIABLES_RECORDATORIO.map((v) => (
+                <button
+                  key={v.clave}
+                  type="button"
+                  title={v.ayuda}
+                  onClick={() => insertarVariable(v.clave)}
+                  className="rounded-full border border-input bg-surface px-2.5 py-1 font-mono text-xs text-ink hover:bg-accent-wash"
+                >
+                  {`{${v.clave}}`}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => setValue("plantillaRecordatorio", PLANTILLA_RECORDATORIO_DEFECTO, { shouldDirty: true })}
+                className="rounded-full px-2.5 py-1 text-xs text-ink-soft underline hover:text-ink"
+              >
+                Restaurar mensaje por defecto
+              </button>
+            </div>
+            <p className="rounded-md border border-line bg-surface p-3 text-13 text-ink-soft">
+              <span className="font-medium text-ink">Vista previa: </span>
+              {vistaPrevia}
+            </p>
+          </div>
 
           <div className="flex justify-end">
             <Button type="submit" loading={isSubmitting} className="w-full sm:w-auto">

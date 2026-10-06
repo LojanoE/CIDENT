@@ -1,10 +1,11 @@
 import { getFirestore } from "firebase-admin/firestore";
 
-export type TipoDocumentoCodigo = "receta" | "certificado" | "presupuesto" | "recibo";
+export type TipoDocumentoCodigo = "receta" | "certificado" | "consentimiento" | "presupuesto" | "recibo";
 
 const PREFIJOS: Record<TipoDocumentoCodigo, string> = {
   receta: "PR",
   certificado: "CE",
+  consentimiento: "CO",
   presupuesto: "PS",
   recibo: "RC",
 };

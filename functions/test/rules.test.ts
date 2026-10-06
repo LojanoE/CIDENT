@@ -142,6 +142,11 @@ beforeEach(async () => {
       tratamiento: "Limpieza",
       estado: "realizado",
     });
+    await setDoc(doc(db, "patients/patientA/consents", "consA1"), {
+      centroId: CENTRO_A,
+      patientId: "patientA",
+      fecha: "2026-09-01",
+    });
     await setDoc(doc(db, "portalLinks", "hashA1"), {
       centroId: CENTRO_A,
       patientId: "patientA",
@@ -337,6 +342,22 @@ describe("firestore.rules — aislamiento entre centros", () => {
     );
     await assertFails(deleteDoc(doc(dbA, "patients/patientA/planTratamiento", "itemHecho")));
     await assertSucceeds(deleteDoc(doc(dbA, "patients/patientA/planTratamiento", "itemPend")));
+  });
+
+  it("consentimientos: el doctor del centro los lee pero ningún cliente los escribe", async () => {
+    const dbA = ctxDoctorA().firestore();
+    await assertSucceeds(getDoc(doc(dbA, "patients/patientA/consents", "consA1")));
+    await assertFails(setDoc(doc(dbA, "patients/patientA/consents", "nuevo"), { centroId: CENTRO_A }));
+    await assertFails(getDoc(doc(ctxDoctorB().firestore(), "patients/patientA/consents", "consA1")));
+  });
+
+  it("plan de tratamiento: collection group solo con filtro por el propio centro", async () => {
+    const dbA = ctxDoctorA().firestore();
+    await assertSucceeds(
+      getDocs(query(collectionGroup(dbA, "planTratamiento"), where("centroId", "==", CENTRO_A))),
+    );
+    await assertFails(getDocs(query(collectionGroup(dbA, "planTratamiento"), where("centroId", "==", CENTRO_B))));
+    await assertFails(getDocs(collectionGroup(dbA, "planTratamiento")));
   });
 
   it("doctor A no puede eliminar un paciente (solo admin)", async () => {

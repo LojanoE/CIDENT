@@ -7,6 +7,7 @@ import {
   type HorarioAtencion,
   type Usuario,
 } from "@cident/shared";
+import { MessageCircleCheck } from "lucide-react";
 import { useMemo } from "react";
 import { EmptyState } from "../../components/ui";
 import { cn } from "../../lib/cn";
@@ -186,7 +187,12 @@ export function VistaDia({ dia, citas, profesionales, horario = HORARIO_POR_DEFE
                     <span className="block font-mono">
                       {horaDe(cita.inicio)}–{horaDe(cita.fin)}
                     </span>
-                    <span className="block truncate font-medium">{cita.pacienteNombre}</span>
+                    <span className="flex items-center gap-1 font-medium">
+                      <span className="truncate">{cita.pacienteNombre}</span>
+                      {cita.recordatorioEnviadoAt && (
+                        <MessageCircleCheck aria-label="Recordatorio enviado" className="h-3.5 w-3.5 shrink-0" />
+                      )}
+                    </span>
                     {height > 48 && cita.motivo && <span className="block truncate opacity-80">{cita.motivo}</span>}
                   </button>
                 );

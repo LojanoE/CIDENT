@@ -1,4 +1,5 @@
 import { horaDe, type Cita, type EstadoCita } from "@cident/shared";
+import { MessageCircleCheck } from "lucide-react";
 import { Badge, type TonoBadge } from "../../components/ui";
 import { cn } from "../../lib/cn";
 import { ETIQUETA_ESTADO } from "./estados";
@@ -36,8 +37,11 @@ export function TarjetaCita({ cita, onClick, mostrarProfesional = false, classNa
         </span>
         <Badge tone={TONO_ESTADO[cita.estado]}>{ETIQUETA_ESTADO[cita.estado]}</Badge>
       </span>
-      <span className={cn("mt-1 block text-sm font-medium", cita.estado === "cancelada" && "line-through")}>
+      <span className={cn("mt-1 flex items-center gap-1.5 text-sm font-medium", cita.estado === "cancelada" && "line-through")}>
         {cita.pacienteNombre}
+        {cita.recordatorioEnviadoAt && (
+          <MessageCircleCheck aria-label="Recordatorio enviado" className="h-3.5 w-3.5 shrink-0 text-ok" />
+        )}
       </span>
       {mostrarProfesional && <span className="block text-13 text-ink-soft">{cita.profesionalNombre}</span>}
       {cita.motivo && <span className="block truncate text-13 text-ink-soft">{cita.motivo}</span>}

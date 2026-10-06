@@ -1,4 +1,5 @@
 import {
+  armarRecordatorio,
   DURACIONES_MIN,
   ESTADOS_CITA,
   citaSchema,
@@ -16,7 +17,7 @@ import {
 } from "@cident/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { onSnapshot, orderBy, query, where } from "firebase/firestore";
-import { AlertTriangle, UserRound, X } from "lucide-react";
+import { AlertTriangle, MessageCircle, UserRound, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link } from "react-router-dom";
@@ -37,8 +38,10 @@ import {
 import { cn } from "../../lib/cn";
 import { mensajeError } from "../../lib/mensajeError";
 import { useEnLinea } from "../../lib/useEnLinea";
+import { enlaceWhatsApp } from "../../lib/whatsapp";
+import { useCentroActual } from "../centros/centrosApi";
 import { pacientesCollection } from "../pacientes/pacientesApi";
-import { actualizarCita, cancelarCita, crearCita } from "./agendaApi";
+import { actualizarCita, cancelarCita, crearCita, marcarRecordatorioEnviado } from "./agendaApi";
 import { ETIQUETA_ESTADO } from "./estados";
 import { useCitasDelRango } from "./useAgenda";
 
@@ -90,6 +93,7 @@ function FormularioCita({ onClose, cita, inicial, profesionales }: CitaSheetProp
   const enLinea = useEnLinea();
   const toast = useToast();
   const editando = cita !== null;
+  const centroActual = useCentroActual(sesion?.centroId);
 
   const [patientId, setPatientId] = useState<string | null>(cita?.patientId ?? null);
   const [modoFicha, setModoFicha] = useState(Boolean(cita?.patientId));
@@ -293,6 +297,37 @@ function FormularioCita({ onClose, cita, inicial, profesionales }: CitaSheetProp
               >
                 Ver atención
               </Link>
+            )}
+            {(cita.estado === "pendiente" || cita.estado === "confirmada") && cita.pacienteTelefono.trim() && (
+              <a
+                href={enlaceWhatsApp(
+                  cita.pacienteTelefono,
+                  armarRecordatorio(centroActual.plantillaRecordatorio, {
+                    paciente: cita.pacienteNombre,
+                    inicio: cita.inicio,
+                    profesional: cita.profesionalNombre,
+                    centro: centroActual.nombre ?? "",
+                    direccion: centroActual.direccion,
+                    telefono: centroActual.telefono,
+                  }),
+                )}
+                target="_blank"
+                rel="noreferrer"
+                aria-disabled={!enLinea}
+                onClick={(e) => {
+                  if (!enLinea || !sesion) {
+                    e.preventDefault();
+                    return;
+                  }
+                  void marcarRecordatorioEnviado(cita.appointmentId, sesion.uid).catch((err) =>
+                    toast.error(mensajeError(err)),
+                  );
+                }}
+                className={cn(estiloBoton({ variant: "secondary" }), !enLinea && "pointer-events-none opacity-50")}
+              >
+                <MessageCircle aria-hidden className="h-4 w-4" />
+                {cita.recordatorioEnviadoAt ? "Recordar de nuevo" : "Recordar por WhatsApp"}
+              </a>
             )}
           </div>
         )}

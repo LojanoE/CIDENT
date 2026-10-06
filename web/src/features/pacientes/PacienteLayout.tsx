@@ -1,5 +1,5 @@
-import { calcularEdad, type Paciente } from "@cident/shared";
-import { AlertTriangle, ChevronLeft, ClipboardList, ListChecks, Plus, UserRound, Wallet } from "lucide-react";
+import { alertasAnamnesis, calcularEdad, type Paciente } from "@cident/shared";
+import { AlertTriangle, ChevronLeft, ClipboardList, HeartPulse, ListChecks, Plus, UserRound, Wallet } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Link, Outlet, useMatch, useParams } from "react-router-dom";
 import { PageHeader } from "../../components/layout";
@@ -83,11 +83,15 @@ export function PacienteLayout() {
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <span className="font-mono">{paciente.cedula}</span>
             <span>{edad ? `${edad.anios} años, ${edad.meses} meses` : "Edad no disponible"}</span>
-            {paciente.alergias && (
-              <Badge tone="danger" icon={<AlertTriangle aria-hidden className="h-3.5 w-3.5" />}>
-                Alergias: {paciente.alergias}
+            {alertasAnamnesis(paciente.anamnesis, paciente.alergias).map((a) => (
+              <Badge
+                key={a.texto}
+                tone={a.nivel === "alta" ? "danger" : "warn"}
+                icon={<AlertTriangle aria-hidden className="h-3.5 w-3.5" />}
+              >
+                {a.texto}
               </Badge>
-            )}
+            ))}
           </span>
         }
         actions={
@@ -111,6 +115,11 @@ export function PacienteLayout() {
               label: "Atenciones",
               end: true,
               icon: <ClipboardList aria-hidden className="h-4 w-4" />,
+            },
+            {
+              to: `/pacientes/${paciente.patientId}/ficha`,
+              label: "Ficha médica",
+              icon: <HeartPulse aria-hidden className="h-4 w-4" />,
             },
             {
               to: `/pacientes/${paciente.patientId}/plan`,

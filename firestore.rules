@@ -105,6 +105,7 @@ service cloud.firestore {
       // Documentos generados: solo los crea el backend
       match /prescriptions/{id} { allow read: if puedeLeerRecurso(resource); allow write: if false; }
       match /certificates/{id}  { allow read: if puedeLeerRecurso(resource); allow write: if false; }
+      match /consents/{id}      { allow read: if puedeLeerRecurso(resource); allow write: if false; }
       match /attachments/{id}   { allow read: if puedeLeerRecurso(resource); allow write: if false; }
       // Pagos: solo el backend los crea y anula (nunca se borran).
       match /payments/{id}      { allow read: if puedeLeerRecurso(resource); allow write: if false; }
@@ -151,6 +152,8 @@ service cloud.firestore {
     match /{path=**}/visits/{visitId}   { allow read: if puedeLeerRecurso(resource); }
     match /{path=**}/prescriptions/{id} { allow read: if puedeLeerRecurso(resource); }
     match /{path=**}/certificates/{id}  { allow read: if puedeLeerRecurso(resource); }
+    match /{path=**}/consents/{id}      { allow read: if puedeLeerRecurso(resource); }
+    match /{path=**}/planTratamiento/{id} { allow read: if puedeLeerRecurso(resource); }
     match /{path=**}/attachments/{id}   { allow read: if puedeLeerRecurso(resource); }
     match /{path=**}/budgets/{id}       { allow read: if puedeLeerRecurso(resource); }
     match /{path=**}/payments/{id}      { allow read: if puedeLeerRecurso(resource); }

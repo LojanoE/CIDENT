@@ -272,6 +272,8 @@ export const actualizarCentroSchema = z.object({
   direccion: z.string().trim().max(200).optional(),
   telefono: z.string().trim().max(40).optional(),
   piePdf: z.string().trim().max(300).optional(),
+  /** Vacío vuelve al mensaje por defecto. */
+  plantillaRecordatorio: z.string().trim().max(600).optional(),
   // httpsCallable serializa los campos `undefined` del payload como `null`,
   // así que hay que aceptar ambos y normalizar a `undefined`.
   logo: z

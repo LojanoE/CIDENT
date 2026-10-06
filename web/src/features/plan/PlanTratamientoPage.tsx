@@ -108,6 +108,11 @@ export function PlanTratamientoPage() {
       <li key={i.id} className="flex flex-wrap items-center gap-2 py-2 text-sm">
         <span className="min-w-0 flex-1">
           <span className="font-medium">{nombre(i)}</span>
+          {i.origen?.codigo && (
+            <span className="ml-2 rounded-full border border-line px-2 py-0.5 font-mono text-xs text-ink-soft">
+              {i.origen.codigo}
+            </span>
+          )}
           {i.estado === "realizado" && i.realizado && (
             <span className="block text-13 text-ink-soft">
               {i.realizado.fecha}
