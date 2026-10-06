@@ -1,38 +1,24 @@
 import type { EstadoDiente, Zona } from "@cident/shared";
-import { ZONAS, apariencia, direccionDeZona, posicionPieza, tipoDePieza } from "@cident/shared";
+import { apariencia, arcadaDe } from "@cident/shared";
 import { Html, Outlines } from "@react-three/drei";
 import type { ThreeEvent } from "@react-three/fiber";
 import { memo, useEffect, useMemo, useState } from "react";
-import {
-  DIMENSIONES,
-  EJES_GRUPOS,
-  alturaCentroOclusal,
-  geometriaConducto,
-  geometriaCorona,
-  geometriaRaiz,
-  raicesDe,
-} from "./geometrias";
+import { colocacion } from "./arcada";
+import { geometriaDiente } from "./geometrias";
 import type { Emisivo, TipoMaterialCorona } from "./materiales";
-import { COLORES, materialConducto, materialCorona, materialRaiz } from "./materiales";
+import { COLORES, materialCorona } from "./materiales";
 
 /** Por debajo de este desplazamiento (px) un clic cuenta como toque y no como arrastre de la cámara. */
 const UMBRAL_ARRASTRE = 6;
-const ESCALA_TEMPORAL = 0.85;
+/** Tinte de la raíz de un diente con endodoncia (se ve con la encía apagada). */
+const TINTE_ENDODONCIA = "#f0a8b4";
 
 function esBlanco(color: string | null): boolean {
   return color === null || color.toLowerCase() === "#ffffff";
 }
 
-/** Zona clínica de cada uno de los 6 grupos de la corona (null = cara cervical). */
-function zonasPorGrupo(fdi: number): Array<Zona | null> {
-  const salida: Array<Zona | null> = EJES_GRUPOS.map(() => null);
-  for (const zona of ZONAS) {
-    const [dx, dy, dz] = direccionDeZona(fdi, zona);
-    const i = EJES_GRUPOS.findIndex(([x, y, z]) => x === dx && y === dy && z === dz);
-    if (i >= 0) salida[i] = zona;
-  }
-  return salida;
-}
+/** Zona clínica de cada grupo de la malla (null = raíz, que cuenta como diente completo). */
+const ZONAS_POR_GRUPO: ReadonlyArray<Zona | null> = [null, "oclusal", "vestibular", "lingual", "mesial", "distal"];
 
 export interface Diente3DProps {
   fdi: number;
@@ -59,22 +45,16 @@ function Diente3DBase({
 }: Diente3DProps) {
   const [hover, setHover] = useState(false);
 
-  const tipo = tipoDePieza(fdi);
-  const pos = useMemo(() => posicionPieza(fdi), [fdi]);
-  const zonas = useMemo(() => zonasPorGrupo(fdi), [fdi]);
+  const col = useMemo(() => colocacion(fdi), [fdi]);
+  const geo = useMemo(() => geometriaDiente(fdi, col.mesialDir), [fdi, col.mesialDir]);
   const ap = useMemo(() => apariencia(estado), [estado]);
-  const signoDistal = useMemo(() => Math.sign(direccionDeZona(fdi, "distal")[0]) || 1, [fdi]);
-
-  const temporal = fdi >= 50;
-  const factor = temporal ? ESCALA_TEMPORAL : 1;
-  const dim = DIMENSIONES[tipo];
-  const alto = dim.alto * factor;
-  const profundidad = dim.profundidad * factor;
-  const largoRaiz = dim.raiz * factor;
+  const invertido = arcadaDe(fdi) === "superior";
+  const factor = fdi >= 50 ? 0.85 : 1;
+  const verRaices = !ap.ausente && !encia;
 
   const materiales = useMemo(
     () =>
-      zonas.map((zona) => {
+      ZONAS_POR_GRUPO.map((zona) => {
         const seleccionadoAqui = generalSeleccionado || (zona !== null && zona === seleccionada);
         const propio = zona ? ap.coloresZona[zona] : null;
 
@@ -88,45 +68,38 @@ function Diente3DBase({
         else if (ap.corona && zona !== null) material = "oro";
         else if (ap.protesis && zona !== null && esBlanco(propio)) material = "protesis";
 
-        return materialCorona({
-          material,
-          color: zona !== null && !esBlanco(propio) ? propio : null,
-          emisivo,
-        });
+        let color = zona !== null && !esBlanco(propio) ? propio : null;
+        if (zona === null && ap.endodoncia && verRaices) color = TINTE_ENDODONCIA;
+
+        return materialCorona({ material, color, emisivo });
       }),
-    [zonas, ap, seleccionada, generalSeleccionado, hover],
+    [ap, seleccionada, generalSeleccionado, hover, verRaices],
   );
 
-  const verRaices = !ap.ausente && !encia;
-  const raizTranslucida = ap.endodoncia && verRaices;
-  const materialDeRaiz = materialRaiz(raizTranslucida, generalSeleccionado ? "seleccion" : "ninguno");
+  /** Región de la malla tocada; la raíz no se toca con la encía puesta (está tapada). */
+  function regionDe(e: ThreeEvent<MouseEvent | PointerEvent>): number | null {
+    const r = e.face?.materialIndex ?? 0;
+    return r === 0 && encia ? null : r;
+  }
 
-  const corona = geometriaCorona(tipo);
-  const raiz = geometriaRaiz();
-  const conducto = geometriaConducto();
-  const raices = raicesDe(tipo, pos.invertido);
-  const yOclusal = -alto * (0.5 - alturaCentroOclusal(tipo));
-
-  function alPulsarCorona(e: ThreeEvent<MouseEvent>) {
+  function alPulsar(e: ThreeEvent<MouseEvent>) {
+    const r = regionDe(e);
+    if (r === null) return;
     e.stopPropagation();
     if (e.delta > UMBRAL_ARRASTRE) return;
-    const zona = zonas[e.face?.materialIndex ?? 3] ?? null;
+    const zona = ZONAS_POR_GRUPO[r] ?? null;
     if (zona) onZonaClick(fdi, zona);
     else if (!soloLectura) onGeneralClick(fdi);
   }
 
-  function alPulsarRaiz(e: ThreeEvent<MouseEvent>) {
-    e.stopPropagation();
-    if (e.delta > UMBRAL_ARRASTRE) return;
-    if (!soloLectura) onGeneralClick(fdi);
-  }
-
   function alDobleClic(e: ThreeEvent<MouseEvent>) {
+    if (regionDe(e) === null) return;
     e.stopPropagation();
     if (!soloLectura) onGeneralClick(fdi);
   }
 
   function entrar(e: ThreeEvent<PointerEvent>) {
+    if (regionDe(e) === null) return;
     e.stopPropagation();
     setHover(true);
     document.body.style.cursor = "pointer";
@@ -149,77 +122,52 @@ function Diente3DBase({
   const contorno = !ap.ausente && (hover || seleccionada !== null || generalSeleccionado);
 
   return (
-    <group position={[pos.x, pos.y, pos.z]} rotation={[0, pos.rotY, 0]}>
+    <group position={[col.x, col.y, col.z]} rotation={[0, col.rotY, 0]}>
       {/* Marco local: oclusal en y=0, corona hacia -y; la arcada superior se espeja en y. */}
-      <group scale={[1, pos.invertido ? -1 : 1, 1]}>
-        <mesh
-          geometry={corona}
-          material={materiales}
-          position={[0, -alto / 2, 0]}
-          scale={[pos.ancho, alto, profundidad]}
-          castShadow
-          receiveShadow
-          onClick={alPulsarCorona}
-          onDoubleClick={alDobleClic}
-          onPointerOver={entrar}
-          onPointerOut={salir}
-        >
-          {contorno && (
-            <Outlines
-              thickness={0.03}
-              color={seleccionada !== null || generalSeleccionado ? COLORES.SELECCION : "#ffffff"}
-            />
-          )}
-        </mesh>
-
-        {verRaices &&
-          raices.map(({ dx, grosor }) => (
-            <group key={dx} position={[dx * pos.ancho, -alto - largoRaiz / 2 + 0.05, 0]}>
-              <mesh
-                geometry={raiz}
-                material={materialDeRaiz}
-                scale={[signoDistal * grosor * pos.ancho, largoRaiz, grosor * profundidad]}
-                castShadow
-                receiveShadow
-                onClick={alPulsarRaiz}
-                onDoubleClick={alDobleClic}
-                onPointerOver={entrar}
-                onPointerOut={salir}
-              />
-              {raizTranslucida && (
-                <mesh
-                  geometry={conducto}
-                  material={materialConducto()}
-                  position={[signoDistal * grosor * pos.ancho * 0.04, 0, 0]}
-                  scale={[0.14 * grosor * pos.ancho, largoRaiz * 0.9, 0.14 * grosor * profundidad]}
-                  raycast={() => null}
+      <group scale={[1, invertido ? -1 : 1, 1]}>
+        {/* Los anteriores se inclinan hacia vestibular pivotando en el cuello. */}
+        <group position={[0, -geo.tope, 0]} rotation={[col.inclinacion, 0, 0]}>
+          <group position={[0, geo.tope, 0]}>
+            <mesh
+              geometry={geo.geometry}
+              material={materiales}
+              onClick={alPulsar}
+              onDoubleClick={alDobleClic}
+              onPointerOver={entrar}
+              onPointerOut={salir}
+            >
+              {contorno && (
+                <Outlines
+                  thickness={0.03}
+                  color={seleccionada !== null || generalSeleccionado ? COLORES.SELECCION : "#ffffff"}
                 />
               )}
-            </group>
-          ))}
+            </mesh>
 
-        {ap.endodoncia && !ap.ausente && (
-          // Punto de acceso a la cámara pulpar, embutido en el centro de la cara oclusal.
-          <mesh position={[0, yOclusal, 0]} raycast={() => null}>
-            <cylinderGeometry args={[0.13 * factor, 0.13 * factor, 0.05, 16]} />
-            <meshStandardMaterial color={COLORES.ENDODONCIA} roughness={0.4} />
-          </mesh>
-        )}
-
-        {ap.extraccionIndicada && !ap.ausente && (
-          // «X» roja que flota delante de la cara vestibular, visible aun detrás de otras piezas.
-          <group position={[0, -alto * 0.45, profundidad * 0.5 + 0.28]} raycast={() => null}>
-            {[Math.PI / 4, -Math.PI / 4].map((giro) => (
-              <mesh key={giro} rotation={[0, 0, giro]} renderOrder={10} raycast={() => null}>
-                <boxGeometry args={[0.7 * factor, 0.09, 0.05]} />
-                <meshBasicMaterial color={COLORES.EXTRACCION} depthTest={false} toneMapped={false} />
+            {ap.endodoncia && !ap.ausente && (
+              // Punto de acceso a la cámara pulpar, embutido en el centro de la cara oclusal.
+              <mesh position={[0, -0.015, 0]} raycast={() => null}>
+                <cylinderGeometry args={[0.13 * factor, 0.13 * factor, 0.05, 16]} />
+                <meshStandardMaterial color={COLORES.ENDODONCIA} roughness={0.4} />
               </mesh>
-            ))}
+            )}
+
+            {ap.extraccionIndicada && !ap.ausente && (
+              // «X» roja que flota delante de la cara vestibular, visible aun detrás de otras piezas.
+              <group position={[0, -geo.tope / 2, col.spec.D * 0.05 + 0.28]} raycast={() => null}>
+                {[Math.PI / 4, -Math.PI / 4].map((giro) => (
+                  <mesh key={giro} rotation={[0, 0, giro]} renderOrder={10} raycast={() => null}>
+                    <boxGeometry args={[0.7 * factor, 0.09, 0.05]} />
+                    <meshBasicMaterial color={COLORES.EXTRACCION} depthTest={false} toneMapped={false} />
+                  </mesh>
+                ))}
+              </group>
+            )}
           </group>
-        )}
+        </group>
       </group>
       {mostrarEtiqueta && (
-        <Html position={[0, pos.invertido ? 0.9 : -0.9, 0.9]} center zIndexRange={[10, 0]}>
+        <Html position={[0, invertido ? 0.9 : -0.9, 0.9]} center zIndexRange={[10, 0]}>
           <span className="pointer-events-none select-none rounded bg-ink px-1.5 py-0.5 font-mono text-xs text-white shadow">
             {fdi}
           </span>

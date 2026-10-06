@@ -2,18 +2,15 @@ import type { Odontograma as OdontogramaData, TipoOdontograma, Zona } from "@cid
 import { FDI_PERMANENTES, FDI_TEMPORALES, arcadaDe } from "@cident/shared";
 import { Environment, Lightformer, OrbitControls } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { EffectComposer, N8AO, SMAA, ToneMapping } from "@react-three/postprocessing";
-import { ToneMappingMode } from "postprocessing";
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { Box3, Vector3 } from "three";
+import { ACESFilmicToneMapping, BackSide, Box3, Vector3 } from "three";
 import type { Group, Mesh, PerspectiveCamera } from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { cn } from "../../../lib/cn";
 import type { SeleccionOdontograma } from "../Odontograma";
 import { Diente3D } from "./Diente3D";
 import { Encia3D } from "./Encia3D";
-import { calidadAlta } from "./calidad";
 
 type Vista = "frente" | "superior" | "inferior";
 
@@ -127,7 +124,6 @@ export function Odontograma3D({
   const [vista, setVista] = useState<Vista>("frente");
   const [abierta, setAbierta] = useState(true);
   const [encia, setEncia] = useState(true);
-  const [alta] = useState(calidadAlta);
   const controles = useRef<OrbitControlsImpl | null>(null);
   const boca = useRef<Group>(null);
 
@@ -160,38 +156,33 @@ export function Odontograma3D({
   return (
     <div className="space-y-2">
       <div
-        className="relative h-[420px] w-full overflow-hidden rounded-lg border border-line bg-gradient-to-b from-accent-wash to-surface sm:h-[520px]"
+        className="relative h-[420px] w-full overflow-hidden rounded-lg border border-line sm:h-[520px]"
+        style={{ background: "radial-gradient(ellipse at 50% 40%, #e4eaec, #c5d0d4)" }}
         role="group"
         aria-label={`Boca 3D, dentición ${tipo === "adulto" ? "adulto" : "infantil"}`}
       >
         <Canvas
           frameloop="demand"
-          dpr={alta ? [1, 2] : [1, 1.5]}
-          shadows={alta ? "percentage" : false}
-          gl={{ antialias: !alta }}
-          camera={{ position: [0, 2, 14], fov: 35, near: 0.1, far: 100 }}
+          dpr={[1, 2]}
+          gl={{ antialias: true, toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1.05 }}
+          camera={{ position: [0, 2, 14], fov: 32, near: 0.1, far: 100 }}
         >
-          <ambientLight intensity={0.25} />
-          <directionalLight
-            position={[4, 8, 10]}
-            intensity={1.5}
-            castShadow={alta}
-            shadow-mapSize={[1024, 1024]}
-            shadow-bias={-0.0005}
-            shadow-normalBias={0.02}
-            shadow-camera-left={-9}
-            shadow-camera-right={9}
-            shadow-camera-top={9}
-            shadow-camera-bottom={-9}
-          />
-          <directionalLight position={[-6, -4, 6]} intensity={0.35} />
+          <hemisphereLight args={["#f4f7ff", "#4a3a36", 0.45]} />
+          <directionalLight position={[30, 60, 90]} intensity={1.25} />
+          <directionalLight position={[-60, -20, -40]} intensity={0.55} color="#dfe8ff" />
+          <directionalLight position={[-40, 10, 80]} intensity={0.35} color="#fff1e6" />
 
-          {/* Entorno de estudio armado con paneles locales: sin descargas, funciona sin conexión. */}
+          {/* Habitación de estudio armada con mallas locales: sin descargas, funciona sin conexión. */}
           <Environment resolution={256} frames={1}>
-            <Lightformer form="rect" intensity={2.2} color="#ffffff" position={[0, 5, 5]} rotation={[-Math.PI / 3, 0, 0]} scale={[10, 4, 1]} />
-            <Lightformer form="rect" intensity={1.2} color="#fff3e0" position={[-6, 1, 3]} rotation={[0, Math.PI / 2.5, 0]} scale={[6, 4, 1]} />
-            <Lightformer form="rect" intensity={1.2} color="#e6f0ff" position={[6, 1, 3]} rotation={[0, -Math.PI / 2.5, 0]} scale={[6, 4, 1]} />
-            <Lightformer form="ring" intensity={0.8} color="#ffffff" position={[0, -3, 6]} scale={4} />
+            <mesh scale={100}>
+              <boxGeometry />
+              <meshBasicMaterial color="#6d7479" side={BackSide} />
+            </mesh>
+            <Lightformer form="rect" intensity={3.2} position={[0, 45, 0]} rotation={[Math.PI / 2, 0, 0]} scale={[60, 60, 1]} />
+            <Lightformer form="rect" intensity={1.6} position={[-45, 10, 10]} rotation={[0, Math.PI / 2, 0]} scale={[50, 30, 1]} />
+            <Lightformer form="rect" intensity={1.4} position={[45, 10, 10]} rotation={[0, -Math.PI / 2, 0]} scale={[50, 30, 1]} />
+            <Lightformer form="rect" intensity={1.8} position={[0, 10, 45]} rotation={[0, Math.PI, 0]} scale={[50, 30, 1]} />
+            <Lightformer form="rect" intensity={0.5} position={[0, -45, 0]} rotation={[-Math.PI / 2, 0, 0]} scale={[60, 60, 1]} />
           </Environment>
 
           <group ref={boca}>
@@ -204,14 +195,6 @@ export function Odontograma3D({
               {inferiores.map(renderDiente)}
             </Deslizable>
           </group>
-
-          {alta && (
-            <EffectComposer multisampling={0}>
-              <N8AO aoRadius={0.6} intensity={2.2} distanceFalloff={1} quality="medium" />
-              <SMAA />
-              <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
-            </EffectComposer>
-          )}
 
           <OrbitControls
             ref={controles}

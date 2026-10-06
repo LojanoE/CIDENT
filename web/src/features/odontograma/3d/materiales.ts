@@ -1,7 +1,6 @@
-import { Color, DoubleSide, MeshPhysicalMaterial } from "three";
+import { Color, MeshPhysicalMaterial } from "three";
 
 export const COLORES = {
-  DENTINA: "#e6d6ae",
   ORO: "#d6a62a",
   PROTESIS: "#aebbc8",
   FANTASMA: "#9aa3ad",
@@ -14,8 +13,8 @@ export type Emisivo = "ninguno" | "hover" | "seleccion" | "extraccion";
 
 const EMISIVOS: Record<Emisivo, readonly [string, number]> = {
   ninguno: ["#000000", 0],
-  hover: ["#ffffff", 0.08],
-  seleccion: [COLORES.SELECCION, 0.25],
+  hover: ["#2a3640", 0.5],
+  seleccion: ["#1f5f74", 0.55],
   extraccion: ["#ff2d2d", 0.18],
 };
 
@@ -56,14 +55,11 @@ export function materialCorona({ material, color, emisivo }: OpcionesCorona): Me
         m = new MeshPhysicalMaterial({
           color: tinte,
           vertexColors: true,
-          roughness: 0.28,
+          roughness: 0.26,
           metalness: 0,
-          clearcoat: 0.5,
-          clearcoatRoughness: 0.2,
-          sheen: 0.25,
-          sheenRoughness: 0.5,
-          sheenColor: new Color("#fff6e0"),
-          ior: 1.62,
+          clearcoat: 0.75,
+          clearcoatRoughness: 0.18,
+          reflectivity: 0.5,
         });
         break;
       case "oro":
@@ -88,7 +84,7 @@ export function materialCorona({ material, color, emisivo }: OpcionesCorona): Me
           color: COLORES.FANTASMA,
           roughness: 0.5,
           transparent: true,
-          opacity: 0.16,
+          opacity: 0.13,
           depthWrite: false,
         });
         break;
@@ -96,26 +92,6 @@ export function materialCorona({ material, color, emisivo }: OpcionesCorona): Me
     aplicarEmisivo(m, emisivo);
     return m;
   });
-}
-
-/** Raíz de dentina; translúcida cuando se quiere ver el conducto de una endodoncia. */
-export function materialRaiz(translucida: boolean, emisivo: Emisivo): MeshPhysicalMaterial {
-  return cacheado(`raiz|${translucida}|${emisivo}`, () => {
-    const m = new MeshPhysicalMaterial({
-      color: COLORES.DENTINA,
-      roughness: 0.5,
-      clearcoat: 0.15,
-      transparent: translucida,
-      opacity: translucida ? 0.42 : 1,
-      depthWrite: !translucida,
-    });
-    aplicarEmisivo(m, emisivo);
-    return m;
-  });
-}
-
-export function materialConducto(): MeshPhysicalMaterial {
-  return cacheado("conducto", () => new MeshPhysicalMaterial({ color: COLORES.ENDODONCIA, roughness: 0.4 }));
 }
 
 /** Encía: rosada y húmeda; el color por vértice marca el borde más claro y la base más oscura. */
@@ -126,13 +102,10 @@ export function materialEncia(): MeshPhysicalMaterial {
       new MeshPhysicalMaterial({
         color: "#ffffff",
         vertexColors: true,
-        roughness: 0.45,
-        sheen: 0.4,
-        sheenRoughness: 0.4,
-        sheenColor: new Color("#ffc4c4"),
-        clearcoat: 0.25,
+        roughness: 0.42,
+        metalness: 0,
+        clearcoat: 0.55,
         clearcoatRoughness: 0.35,
-        side: DoubleSide,
       }),
   );
 }
