@@ -3,6 +3,8 @@
  * Fuente de verdad única para la forma de los documentos de Firestore.
  */
 
+import type { TipoToma } from "./fotosClinicas.js";
+
 // ---------------------------------------------------------------------------
 // Identidad y centros
 // ---------------------------------------------------------------------------
@@ -402,6 +404,10 @@ export interface Adjunto {
   mimeType: string;
   size: number;
   archivo: { storagePath: string };
+  /** Tipo de toma (foto intraoral, radiografía…); ausente en adjuntos anteriores. */
+  toma?: TipoToma;
+  /** Piezas FDI que muestra el adjunto. */
+  piezas?: number[];
   uploadedBy: string;
   createdAt: string;
 }

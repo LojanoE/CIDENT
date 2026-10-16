@@ -1,4 +1,4 @@
-import type { Adjunto } from "@cident/shared";
+import { parsearPiezas, parsearToma, type Adjunto } from "@cident/shared";
 import { getFirestore } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
 import { onObjectFinalized } from "firebase-functions/v2/storage";
@@ -56,6 +56,10 @@ export const onAdjuntoSubido = onObjectFinalized({ region: "southamerica-east1" 
 
   await archivoStaging.move(storagePath);
 
+  // Etiquetas opcionales del cliente: si vienen mal formadas se ignoran (la foto se conserva).
+  const toma = parsearToma(objeto.metadata?.toma);
+  const piezas = parsearPiezas(objeto.metadata?.piezas);
+
   const ahora = new Date().toISOString();
   const adjunto: Adjunto = {
     id: docRef.id,
@@ -67,6 +71,8 @@ export const onAdjuntoSubido = onObjectFinalized({ region: "southamerica-east1" 
     mimeType: objeto.contentType ?? "application/octet-stream",
     size: Number(objeto.size ?? 0),
     archivo: { storagePath },
+    ...(toma ? { toma } : {}),
+    ...(piezas.length > 0 ? { piezas } : {}),
     uploadedBy: uid,
     createdAt: ahora,
   };

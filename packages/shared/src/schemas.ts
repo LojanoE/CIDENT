@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { CATEGORIAS_GASTO, CONDICIONES, ESTADOS_CITA, ESTADOS_ITEM_PLAN, FORMAS_PAGO, ZONAS } from "./types.js";
+import { TIPOS_TOMA } from "./fotosClinicas.js";
 
 export const cedulaSchema = z
   .string()
@@ -368,3 +369,15 @@ export const itemPlanSchema = z.object({
 export type ItemPlanInput = z.infer<typeof itemPlanSchema>;
 
 export const estadoItemPlanSchema = z.enum(ESTADOS_ITEM_PLAN);
+
+// ---------------------------------------------------------------------------
+// Etiquetado de adjuntos (tipo de toma y piezas)
+// ---------------------------------------------------------------------------
+
+export const etiquetarAdjuntoSchema = z.object({
+  patientId: z.string().min(1),
+  adjuntoId: z.string().min(1),
+  toma: z.enum(TIPOS_TOMA),
+  piezas: z.array(z.number().int().min(11).max(85)).max(52),
+});
+export type EtiquetarAdjuntoInput = z.infer<typeof etiquetarAdjuntoSchema>;

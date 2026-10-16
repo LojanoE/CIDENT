@@ -1,6 +1,9 @@
+import type { EtiquetarAdjuntoInput, TipoToma } from "@cident/shared";
 import { collection, type Firestore } from "firebase/firestore";
+import { httpsCallable } from "firebase/functions";
 import { getDownloadURL, ref, uploadBytesResumable, type UploadTaskSnapshot } from "firebase/storage";
-import { db, storage } from "../../app/firebase";
+import { useEffect, useState } from "react";
+import { db, functions, storage } from "../../app/firebase";
 
 export function adjuntosCollection(patientId: string, firestore: Firestore = db) {
   return collection(firestore, "patients", patientId, "attachments");
@@ -12,6 +15,9 @@ export interface SubirAdjuntoParams {
   uid: string;
   patientId: string;
   visitId: string;
+  /** Etiquetas opcionales; el trigger las valida y las copia al doc `attachments`. */
+  toma?: TipoToma;
+  piezas?: readonly number[];
   onProgress?: (porcentaje: number) => void;
 }
 
@@ -27,6 +33,8 @@ export function subirAdjunto({
   uid,
   patientId,
   visitId,
+  toma,
+  piezas,
   onProgress,
 }: SubirAdjuntoParams): Promise<void> {
   const nombreSeguro = file.name.replace(/[/\\]/g, "_");
@@ -36,7 +44,12 @@ export function subirAdjunto({
   return new Promise((resolve, reject) => {
     const task = uploadBytesResumable(storageRef, file, {
       contentType: file.type || "application/octet-stream",
-      customMetadata: { patientId, visitId },
+      customMetadata: {
+        patientId,
+        visitId,
+        ...(toma ? { toma } : {}),
+        ...(piezas && piezas.length > 0 ? { piezas: piezas.join(",") } : {}),
+      },
     });
     task.on(
       "state_changed",
@@ -51,4 +64,27 @@ export function subirAdjunto({
 
 export function obtenerUrlDescarga(storagePath: string): Promise<string> {
   return getDownloadURL(ref(storage, storagePath));
+}
+
+const etiquetarAdjuntoCallable = httpsCallable<EtiquetarAdjuntoInput, void>(functions, "etiquetarAdjunto");
+
+/** Corrige el tipo de toma y las piezas de un adjunto ya subido (solo el backend escribe `attachments`). */
+export async function etiquetarAdjunto(input: EtiquetarAdjuntoInput): Promise<void> {
+  await etiquetarAdjuntoCallable(input);
+}
+
+/** URL de descarga de un adjunto (para miniaturas); `null` mientras carga o si falla. */
+export function useUrlAdjunto(storagePath: string | undefined): string | null {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!storagePath) return;
+    let cancelado = false;
+    obtenerUrlDescarga(storagePath)
+      .then((u) => !cancelado && setUrl(u))
+      .catch(() => !cancelado && setUrl(null));
+    return () => {
+      cancelado = true;
+    };
+  }, [storagePath]);
+  return url;
 }

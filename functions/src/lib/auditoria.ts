@@ -19,6 +19,7 @@ export type AccionAuditoria =
   | "gasto_anulado"
   | "resumen_atencion_generado"
   | "adjunto_subido"
+  | "adjunto_etiquetado"
   | "atencion_eliminada"
   | "atencion_anulada"
   | "portal_enlace_creado"
