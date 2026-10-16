@@ -92,9 +92,20 @@ export type CertificadoInput = z.infer<typeof certificadoSchema>;
 // Generación de documentos PDF (F5)
 // ---------------------------------------------------------------------------
 
+/**
+ * Firma electrónica opcional de un documento: solo viaja la contraseña del .p12,
+ * que el servidor usa para esa firma y descarta (nunca se guarda ni se registra).
+ */
+export const firmaElectronicaEntradaSchema = z
+  .object({ password: z.string().min(1, "Indica la contraseña de la firma.").max(200) })
+  .nullable()
+  .optional()
+  .transform((v) => v ?? undefined);
+
 const referenciaVisitaSchema = z.object({
   patientId: z.string().trim().min(1),
   visitId: z.string().trim().min(1),
+  firmaElectronica: firmaElectronicaEntradaSchema,
 });
 
 export const generarRecetaSchema = recetaSchema.merge(referenciaVisitaSchema);
@@ -381,3 +392,23 @@ export const etiquetarAdjuntoSchema = z.object({
   piezas: z.array(z.number().int().min(11).max(85)).max(52),
 });
 export type EtiquetarAdjuntoInput = z.infer<typeof etiquetarAdjuntoSchema>;
+
+// ---------------------------------------------------------------------------
+// Firma del profesional (certificado .p12 y firma dibujada)
+// ---------------------------------------------------------------------------
+
+/** Tope del .p12 en base64 (un .p12 real pesa pocos KB). */
+export const P12_MAX_BASE64 = 300_000;
+/** Tope de la firma dibujada en base64 (el lienzo exporta a 600 px de ancho). */
+export const FIRMA_MANUSCRITA_MAX_BASE64 = 400_000;
+
+export const guardarCertificadoFirmaSchema = z.object({
+  p12Base64: z.string().min(1, "Selecciona el archivo .p12.").max(P12_MAX_BASE64, "El archivo es demasiado grande."),
+  password: z.string().min(1, "Indica la contraseña de la firma.").max(200),
+});
+export type GuardarCertificadoFirmaInput = z.infer<typeof guardarCertificadoFirmaSchema>;
+
+export const guardarFirmaManuscritaSchema = z.object({
+  pngBase64: z.string().min(1).max(FIRMA_MANUSCRITA_MAX_BASE64),
+});
+export type GuardarFirmaManuscritaInput = z.infer<typeof guardarFirmaManuscritaSchema>;

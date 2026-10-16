@@ -32,6 +32,20 @@ export interface Centro {
   plantillaRecordatorio?: string;
 }
 
+/** Resumen del certificado de firma electrónica del profesional. */
+export interface CertificadoFirma {
+  titular: string;
+  emisor: string;
+  validoHasta: string; // ISO datetime
+  subidoAt: string;
+}
+
+/** Cómo quedó firmado un documento emitido. */
+export interface FirmaDocumento {
+  tipo: "electronica" | "manuscrita" | "ninguna";
+  titular?: string;
+}
+
 export interface Usuario {
   uid: string;
   centroId: string;
@@ -39,6 +53,10 @@ export interface Usuario {
   usuario: string;
   nombreCompleto: string;
   registroProfesional: string;
+  /** Datos públicos del certificado .p12 guardado (cifrado, solo backend); sin contraseña. */
+  firmaElectronica?: CertificadoFirma;
+  /** Marca de que el usuario dibujó su firma; la imagen vive solo en Storage (backend). */
+  firmaManuscritaAt?: string;
   activo: boolean;
   failedAttempts: number;
   lockedUntil: string | null; // ISO datetime

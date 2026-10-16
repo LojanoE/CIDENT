@@ -5,11 +5,12 @@ import { getStorage } from "firebase-admin/storage";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { registrarAuditoria } from "../lib/auditoria.js";
 import { requireAuth } from "../lib/guards.js";
-import { obtenerFirmaBuffer } from "../pdf/firma.js";
+import { FIRMA_KEK } from "../lib/cifrado.js";
+import { prepararFirma } from "../firma/prepararFirma.js";
 import { obtenerLogoBuffer } from "../pdf/logo.js";
 import { generarPdfResumenAtencion } from "../pdf/atencion.js";
 
-export const generarResumenAtencion = onCall({ region: "southamerica-east1" }, async (request) => {
+export const generarResumenAtencion = onCall({ region: "southamerica-east1", secrets: [FIRMA_KEK] }, async (request) => {
   const contexto = requireAuth(request);
 
   const parsed = generarResumenAtencionSchema.safeParse(request.data);
@@ -71,7 +72,13 @@ export const generarResumenAtencion = onCall({ region: "southamerica-east1" }, a
 
   const storagePath = `centros/${paciente.centroId}/pacientes/${patientId}/atenciones/Atencion_${visitId}_${atencion.fecha}.pdf`;
 
-  const [firma, logo] = await Promise.all([obtenerFirmaBuffer(), obtenerLogoBuffer(centro)]);
+  // Se resuelve ANTES de crear nada: una contraseña incorrecta no debe dejar registros a medias.
+  const firmaPrep = await prepararFirma({
+    uid: contexto.uid,
+    centro: centro.nombre,
+    password: parsed.data.firmaElectronica?.password,
+  });
+  const logo = await obtenerLogoBuffer(centro);
   const pdf = await generarPdfResumenAtencion({
     centro,
     profesional: { nombreCompleto: usuario.nombreCompleto, registroProfesional: usuario.registroProfesional },
@@ -79,17 +86,18 @@ export const generarResumenAtencion = onCall({ region: "southamerica-east1" }, a
     atencion,
     odontograma,
     tratamientosRealizados,
-    firma,
+    firma: firmaPrep.firma,
+    sello: firmaPrep.sello,
     logo,
   });
-  await getStorage().bucket().file(storagePath).save(pdf, { contentType: "application/pdf" });
+  await getStorage().bucket().file(storagePath).save(await firmaPrep.firmar(pdf), { contentType: "application/pdf" });
 
   await registrarAuditoria({
     accion: "resumen_atencion_generado",
     uid: contexto.uid,
     centroId: paciente.centroId,
     entidad: { tipo: "visits", id: visitId },
-    detalle: { patientId },
+    detalle: { firma: firmaPrep.info.tipo, patientId },
   });
 
   return { storagePath };

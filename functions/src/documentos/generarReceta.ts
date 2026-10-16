@@ -6,11 +6,12 @@ import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { registrarAuditoria } from "../lib/auditoria.js";
 import { requireAuth } from "../lib/guards.js";
 import { siguienteCodigo } from "../lib/counters.js";
-import { obtenerFirmaBuffer } from "../pdf/firma.js";
+import { FIRMA_KEK } from "../lib/cifrado.js";
+import { prepararFirma } from "../firma/prepararFirma.js";
 import { obtenerLogoBuffer } from "../pdf/logo.js";
 import { generarPdfReceta } from "../pdf/receta.js";
 
-export const generarReceta = onCall({ region: "southamerica-east1" }, async (request) => {
+export const generarReceta = onCall({ region: "southamerica-east1", secrets: [FIRMA_KEK] }, async (request) => {
   const contexto = requireAuth(request);
 
   const parsed = generarRecetaSchema.safeParse(request.data);
@@ -51,6 +52,13 @@ export const generarReceta = onCall({ region: "southamerica-east1" }, async (req
   const usuario = usuarioSnap.data() as Usuario;
   const centro = centroSnap.data() as Centro;
 
+  // Se resuelve ANTES de crear nada: una contraseña incorrecta no debe dejar registros a medias.
+  const firmaPrep = await prepararFirma({
+    uid: contexto.uid,
+    centro: centro.nombre,
+    password: parsed.data.firmaElectronica?.password,
+  });
+
   const docRef = pacienteRef.collection("prescriptions").doc();
   const ahora = new Date().toISOString();
 
@@ -70,6 +78,7 @@ export const generarReceta = onCall({ region: "southamerica-east1" }, async (req
       codigoUnico: codigo,
       archivo: { storagePath, nombre: `Receta_${codigo}.pdf` },
       emitidoPor: contexto.uid,
+      firma: firmaPrep.info,
       createdAt: ahora,
     });
     return codigo;
@@ -78,16 +87,17 @@ export const generarReceta = onCall({ region: "southamerica-east1" }, async (req
   const storagePath = `centros/${paciente.centroId}/pacientes/${patientId}/recetas/Receta_${codigoUnico}.pdf`;
 
   try {
-    const [firma, logo] = await Promise.all([obtenerFirmaBuffer(), obtenerLogoBuffer(centro)]);
+    const logo = await obtenerLogoBuffer(centro);
     const pdf = await generarPdfReceta({
       centro,
       profesional: { nombreCompleto: usuario.nombreCompleto, registroProfesional: usuario.registroProfesional },
       paciente,
       receta: { fecha: visita.fecha, diagnostico, indicaciones, medicamentos, recomendaciones, codigoUnico },
-      firma,
+      firma: firmaPrep.firma,
+      sello: firmaPrep.sello,
       logo,
     });
-    await getStorage().bucket().file(storagePath).save(pdf, { contentType: "application/pdf" });
+    await getStorage().bucket().file(storagePath).save(await firmaPrep.firmar(pdf), { contentType: "application/pdf" });
   } catch {
     await docRef.delete().catch(() => undefined);
     throw new HttpsError("internal", "No se pudo generar la receta en PDF.");
@@ -98,7 +108,7 @@ export const generarReceta = onCall({ region: "southamerica-east1" }, async (req
     uid: contexto.uid,
     centroId: paciente.centroId,
     entidad: { tipo: "prescriptions", id: docRef.id },
-    detalle: { patientId, visitId, codigoUnico },
+    detalle: { firma: firmaPrep.info.tipo, patientId, visitId, codigoUnico },
   });
 
   return { id: docRef.id, codigo: codigoUnico, storagePath };

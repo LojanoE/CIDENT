@@ -1,18 +1,33 @@
 import { getStorage } from "firebase-admin/storage";
 
-const RUTA_FIRMA = "assets-privados/FIRMA.png";
+const RUTA_FIRMA_GLOBAL = "assets-privados/FIRMA.png";
 
-/**
- * Descarga la firma escaneada del profesional desde una ruta del bucket que
- * `storage.rules` no expone a ningún cliente (solo el Admin SDK la lee).
- * Nunca se commitea ni se sirve al navegador. Falla en silencio: si aún no
- * se ha subido, el PDF se genera sin firma.
- */
-export async function obtenerFirmaBuffer(): Promise<Buffer | null> {
+/** Rutas de la firma de cada profesional; `storage.rules` no las expone a ningún cliente. */
+export function rutaCertificado(uid: string): string {
+  return `assets-privados/firmas/${uid}/certificado.p12.enc`;
+}
+export function rutaManuscrita(uid: string): string {
+  return `assets-privados/firmas/${uid}/manuscrita.png`;
+}
+
+export async function descargarOpcional(ruta: string): Promise<Buffer | null> {
   try {
-    const [buffer] = await getStorage().bucket().file(RUTA_FIRMA).download();
+    const [buffer] = await getStorage().bucket().file(ruta).download();
     return buffer;
   } catch {
     return null;
   }
+}
+
+/**
+ * Firma dibujada del profesional; si no la tiene, la firma escaneada global
+ * (compatibilidad con la instalación original). Nunca se commitea ni se sirve
+ * al navegador. Falla en silencio: sin firma, el PDF se genera igual.
+ */
+export async function obtenerFirmaBuffer(uid?: string): Promise<Buffer | null> {
+  if (uid) {
+    const propia = await descargarOpcional(rutaManuscrita(uid));
+    if (propia) return propia;
+  }
+  return descargarOpcional(RUTA_FIRMA_GLOBAL);
 }

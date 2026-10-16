@@ -13,6 +13,7 @@ import {
 } from "./layout.js";
 import { dibujarOdontograma } from "./odontogramaPdf.js";
 
+import type { SelloFirma } from "./selloFirma.js";
 export interface DatosResumenAtencion {
   centro: Centro;
   profesional: ProfesionalPdf;
@@ -22,6 +23,7 @@ export interface DatosResumenAtencion {
   /** Ítems del plan marcados como realizados en esta atención (ya con pieza y nota). */
   tratamientosRealizados?: string[];
   firma: Buffer | null;
+  sello?: SelloFirma | null;
   logo: Buffer | null;
 }
 
@@ -147,7 +149,7 @@ export function generarPdfResumenAtencion(datos: DatosResumenAtencion): Promise<
       generarDescripcionOdontograma(datos.odontograma),
     );
 
-    dibujarPie(doc, datos.centro, datos.profesional, datos.firma);
+    dibujarPie(doc, datos.centro, datos.profesional, datos.firma, datos.sello);
 
     doc.end();
   });

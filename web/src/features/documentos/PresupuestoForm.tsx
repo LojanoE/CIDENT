@@ -6,6 +6,7 @@ import { useEffect, useId, useMemo, useState } from "react";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { Button, Field, Input, Textarea, useToast } from "../../components/ui";
 import { mensajeError } from "../../lib/mensajeError";
+import { useFirmaDocumento } from "../firma/useFirmaDocumento";
 import { generarPresupuesto, obtenerCatalogoTratamientos, obtenerIvaPorDefecto } from "./documentosApi";
 
 const lineaVacia = { tratamiento: "", pieza: "", cantidad: 1, precioUnitario: 0 };
@@ -38,6 +39,7 @@ export function PresupuestoForm({
   centroId: string;
 }) {
   const toast = useToast();
+  const { conFirma, dialogo } = useFirmaDocumento();
   const idCatalogo = useId();
   const [catalogo, setCatalogo] = useState<TratamientoCatalogo[]>([]);
 
@@ -89,7 +91,10 @@ export function PresupuestoForm({
 
   const enviar = async (values: PresupuestoInput) => {
     try {
-      await generarPresupuesto({ ...values, patientId, visitId });
+      const emitido = await conFirma((firmaElectronica) =>
+        generarPresupuesto({ ...values, patientId, visitId, firmaElectronica }),
+      );
+      if (!emitido) return; // canceló la firma
       reset(porDefecto(numero(getValues("ivaPorcentaje"))));
       void cargarCatalogo().catch(() => undefined);
       toast.ok("Presupuesto generado.");
@@ -100,6 +105,7 @@ export function PresupuestoForm({
 
   return (
     <form onSubmit={handleSubmit(enviar)} noValidate className="space-y-4">
+      {dialogo}
       <datalist id={idCatalogo}>
         {catalogo.map((t) => (
           <option key={t.nombre} value={t.nombre} />

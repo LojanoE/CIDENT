@@ -7,11 +7,12 @@ import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { registrarAuditoria } from "../lib/auditoria.js";
 import { siguienteCodigo } from "../lib/counters.js";
 import { requireAuth } from "../lib/guards.js";
-import { obtenerFirmaBuffer } from "../pdf/firma.js";
+import { FIRMA_KEK } from "../lib/cifrado.js";
+import { prepararFirma } from "../firma/prepararFirma.js";
 import { obtenerLogoBuffer } from "../pdf/logo.js";
 import { generarPdfPresupuesto } from "../pdf/presupuesto.js";
 
-export const generarPresupuesto = onCall({ region: "southamerica-east1" }, async (request) => {
+export const generarPresupuesto = onCall({ region: "southamerica-east1", secrets: [FIRMA_KEK] }, async (request) => {
   const contexto = requireAuth(request);
 
   const parsed = generarPresupuestoSchema.safeParse(request.data);
@@ -65,6 +66,13 @@ export const generarPresupuesto = onCall({ region: "southamerica-east1" }, async
     totalLinea: totales.totalesLinea[i] ?? 0,
   }));
 
+  // Se resuelve ANTES de crear nada: una contraseña incorrecta no debe dejar registros a medias.
+  const firmaPrep = await prepararFirma({
+    uid: contexto.uid,
+    centro: centro.nombre,
+    password: parsed.data.firmaElectronica?.password,
+  });
+
   const docRef = pacienteRef.collection("budgets").doc();
   const ahora = new Date().toISOString();
 
@@ -92,6 +100,7 @@ export const generarPresupuesto = onCall({ region: "southamerica-east1" }, async
         nombre: `Presupuesto_${codigo}.pdf`,
       },
       emitidoPor: contexto.uid,
+      firma: firmaPrep.info,
       createdAt: ahora,
     });
     return codigo;
@@ -100,7 +109,7 @@ export const generarPresupuesto = onCall({ region: "southamerica-east1" }, async
   const storagePath = `centros/${paciente.centroId}/pacientes/${patientId}/presupuestos/Presupuesto_${codigoUnico}.pdf`;
 
   try {
-    const [firma, logo] = await Promise.all([obtenerFirmaBuffer(), obtenerLogoBuffer(centro)]);
+    const logo = await obtenerLogoBuffer(centro);
     const pdf = await generarPdfPresupuesto({
       centro,
       profesional: { nombreCompleto: usuario.nombreCompleto, registroProfesional: usuario.registroProfesional },
@@ -118,10 +127,11 @@ export const generarPresupuesto = onCall({ region: "southamerica-east1" }, async
         validezDias,
         observaciones,
       },
-      firma,
+      firma: firmaPrep.firma,
+      sello: firmaPrep.sello,
       logo,
     });
-    await getStorage().bucket().file(storagePath).save(pdf, { contentType: "application/pdf" });
+    await getStorage().bucket().file(storagePath).save(await firmaPrep.firmar(pdf), { contentType: "application/pdf" });
   } catch {
     await docRef.delete().catch(() => undefined);
     throw new HttpsError("internal", "No se pudo generar el presupuesto en PDF.");
@@ -153,7 +163,7 @@ export const generarPresupuesto = onCall({ region: "southamerica-east1" }, async
     uid: contexto.uid,
     centroId: paciente.centroId,
     entidad: { tipo: "budgets", id: docRef.id },
-    detalle: { patientId, visitId, codigoUnico, total: totales.total },
+    detalle: { firma: firmaPrep.info.tipo, patientId, visitId, codigoUnico, total: totales.total },
   });
 
   return { id: docRef.id, codigo: codigoUnico, storagePath };

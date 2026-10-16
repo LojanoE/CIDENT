@@ -112,6 +112,12 @@ export const router = createBrowserRouter([
         }),
       },
       {
+        path: "mi-firma",
+        lazy: async () => ({
+          Component: (await import("../features/firma/MiFirmaPage")).MiFirmaPage,
+        }),
+      },
+      {
         path: "admin",
         element: (
           <ProtectedRoute rolRequerido="admin">

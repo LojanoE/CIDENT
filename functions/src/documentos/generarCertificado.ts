@@ -6,11 +6,12 @@ import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { registrarAuditoria } from "../lib/auditoria.js";
 import { requireAuth } from "../lib/guards.js";
 import { siguienteCodigo } from "../lib/counters.js";
-import { obtenerFirmaBuffer } from "../pdf/firma.js";
+import { FIRMA_KEK } from "../lib/cifrado.js";
+import { prepararFirma } from "../firma/prepararFirma.js";
 import { obtenerLogoBuffer } from "../pdf/logo.js";
 import { generarPdfCertificado } from "../pdf/certificado.js";
 
-export const generarCertificado = onCall({ region: "southamerica-east1" }, async (request) => {
+export const generarCertificado = onCall({ region: "southamerica-east1", secrets: [FIRMA_KEK] }, async (request) => {
   const contexto = requireAuth(request);
 
   const parsed = generarCertificadoSchema.safeParse(request.data);
@@ -51,6 +52,13 @@ export const generarCertificado = onCall({ region: "southamerica-east1" }, async
   const usuario = usuarioSnap.data() as Usuario;
   const centro = centroSnap.data() as Centro;
 
+  // Se resuelve ANTES de crear nada: una contraseña incorrecta no debe dejar registros a medias.
+  const firmaPrep = await prepararFirma({
+    uid: contexto.uid,
+    centro: centro.nombre,
+    password: parsed.data.firmaElectronica?.password,
+  });
+
   const docRef = pacienteRef.collection("certificates").doc();
   const ahora = new Date().toISOString();
 
@@ -68,6 +76,7 @@ export const generarCertificado = onCall({ region: "southamerica-east1" }, async
       codigoUnico: codigo,
       archivo: { storagePath, nombre: `Certificado_${docRef.id}_${visita.fecha}.pdf` },
       emitidoPor: contexto.uid,
+      firma: firmaPrep.info,
       createdAt: ahora,
     });
     return codigo;
@@ -76,16 +85,17 @@ export const generarCertificado = onCall({ region: "southamerica-east1" }, async
   const storagePath = `centros/${paciente.centroId}/pacientes/${patientId}/certificados/Certificado_${docRef.id}_${visita.fecha}.pdf`;
 
   try {
-    const [firma, logo] = await Promise.all([obtenerFirmaBuffer(), obtenerLogoBuffer(centro)]);
+    const logo = await obtenerLogoBuffer(centro);
     const pdf = await generarPdfCertificado({
       centro,
       profesional: { nombreCompleto: usuario.nombreCompleto, registroProfesional: usuario.registroProfesional },
       paciente,
       certificado: { fecha: visita.fecha, motivo, observaciones, codigoUnico },
-      firma,
+      firma: firmaPrep.firma,
+      sello: firmaPrep.sello,
       logo,
     });
-    await getStorage().bucket().file(storagePath).save(pdf, { contentType: "application/pdf" });
+    await getStorage().bucket().file(storagePath).save(await firmaPrep.firmar(pdf), { contentType: "application/pdf" });
   } catch {
     await docRef.delete().catch(() => undefined);
     throw new HttpsError("internal", "No se pudo generar el certificado en PDF.");
@@ -96,7 +106,7 @@ export const generarCertificado = onCall({ region: "southamerica-east1" }, async
     uid: contexto.uid,
     centroId: paciente.centroId,
     entidad: { tipo: "certificates", id: docRef.id },
-    detalle: { patientId, visitId, codigoUnico },
+    detalle: { firma: firmaPrep.info.tipo, patientId, visitId, codigoUnico },
   });
 
   return { id: docRef.id, codigo: codigoUnico, storagePath };

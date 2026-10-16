@@ -6,6 +6,7 @@ import { useAuth } from "../../app/AuthProvider";
 import { db } from "../../app/firebase";
 import { Button, Field, Input, Select, Textarea, useToast } from "../../components/ui";
 import { mensajeError } from "../../lib/mensajeError";
+import { useFirmaDocumento } from "../firma/useFirmaDocumento";
 import { useEnLinea } from "../../lib/useEnLinea";
 import { useCentroActual } from "../centros/centrosApi";
 import { obtenerPaciente } from "../pacientes/pacientesApi";
@@ -15,6 +16,7 @@ import { FirmaCanvas } from "./FirmaCanvas";
 /** Consentimiento informado: se elige la plantilla, se revisa el texto y el paciente firma en pantalla. */
 export function ConsentimientoForm({ patientId, visitId }: { patientId: string; visitId: string }) {
   const toast = useToast();
+  const { conFirma, dialogo } = useFirmaDocumento();
   const { sesion } = useAuth();
   const enLinea = useEnLinea();
   const centro = useCentroActual(sesion?.centroId);
@@ -91,16 +93,20 @@ export function ConsentimientoForm({ patientId, visitId }: { patientId: string; 
     }
     setOcupado(true);
     try {
-      await generarConsentimiento({
-        patientId,
-        visitId,
-        plantilla,
-        tratamiento,
-        pieza: pieza.trim() || undefined,
-        textoFinal: texto,
-        firmaPaciente: firma,
-        firmante: { nombre: nombreFirmante, cedula: cedulaFirmante, relacion },
-      });
+      const emitido = await conFirma((firmaElectronica) =>
+        generarConsentimiento({
+          patientId,
+          visitId,
+          plantilla,
+          tratamiento,
+          pieza: pieza.trim() || undefined,
+          textoFinal: texto,
+          firmaPaciente: firma,
+          firmante: { nombre: nombreFirmante, cedula: cedulaFirmante, relacion },
+          firmaElectronica,
+        }),
+      );
+      if (!emitido) return; // canceló la firma: se queda en la pantalla de firma del paciente
       toast.ok("Consentimiento generado.");
       setFirmando(false);
       setFirma(null);
@@ -122,6 +128,7 @@ export function ConsentimientoForm({ patientId, visitId }: { patientId: string; 
         aria-label="Firma del consentimiento"
         className="fixed inset-0 z-50 overflow-y-auto bg-white p-4"
       >
+        {dialogo}
         <div className="mx-auto max-w-2xl space-y-4">
           <h3 className="text-lg font-semibold">{ETIQUETAS_CONSENTIMIENTO[plantilla]}</h3>
           <p className="max-h-60 overflow-y-auto whitespace-pre-line rounded-md border border-line bg-surface p-3 text-sm">
@@ -170,6 +177,7 @@ export function ConsentimientoForm({ patientId, visitId }: { patientId: string; 
 
   return (
     <div className="space-y-3">
+      {dialogo}
       <Field label="Plantilla">
         <Select
           value={plantilla}

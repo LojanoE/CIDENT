@@ -10,6 +10,7 @@ import {
   type ProfesionalPdf,
 } from "./layout.js";
 
+import type { SelloFirma } from "./selloFirma.js";
 export interface DatosCertificado {
   centro: Centro;
   profesional: ProfesionalPdf;
@@ -21,6 +22,7 @@ export interface DatosCertificado {
     codigoUnico: string;
   };
   firma: Buffer | null;
+  sello?: SelloFirma | null;
   logo: Buffer | null;
 }
 
@@ -60,7 +62,7 @@ export function generarPdfCertificado(datos: DatosCertificado): Promise<Buffer> 
       bloqueTexto(doc, PAGE_MARGIN_X, y, anchoUtil, "OBSERVACIONES", datos.certificado.observaciones);
     }
 
-    dibujarPie(doc, datos.centro, datos.profesional, datos.firma);
+    dibujarPie(doc, datos.centro, datos.profesional, datos.firma, datos.sello);
 
     doc.end();
   });

@@ -10,6 +10,7 @@ import {
   type ProfesionalPdf,
 } from "./layout.js";
 
+import type { SelloFirma } from "./selloFirma.js";
 export interface DatosConsentimientoPdf {
   centro: Centro;
   profesional: ProfesionalPdf;
@@ -26,6 +27,7 @@ export interface DatosConsentimientoPdf {
   };
   firmaPaciente: Buffer;
   firma: Buffer | null;
+  sello?: SelloFirma | null;
   logo: Buffer | null;
 }
 
@@ -93,7 +95,7 @@ export function generarPdfConsentimiento(datos: DatosConsentimientoPdf): Promise
         align: "center",
       });
 
-    dibujarPie(doc, datos.centro, datos.profesional, datos.firma);
+    dibujarPie(doc, datos.centro, datos.profesional, datos.firma, datos.sello);
 
     doc.end();
   });

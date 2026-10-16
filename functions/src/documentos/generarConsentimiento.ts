@@ -8,12 +8,13 @@ import { registrarAuditoria } from "../lib/auditoria.js";
 import { siguienteCodigo } from "../lib/counters.js";
 import { requireAuth } from "../lib/guards.js";
 import { generarPdfConsentimiento } from "../pdf/consentimiento.js";
-import { obtenerFirmaBuffer } from "../pdf/firma.js";
+import { FIRMA_KEK } from "../lib/cifrado.js";
+import { prepararFirma } from "../firma/prepararFirma.js";
 import { obtenerLogoBuffer } from "../pdf/logo.js";
 
 const FIRMA_PNG = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
 
-export const generarConsentimiento = onCall({ region: "southamerica-east1" }, async (request) => {
+export const generarConsentimiento = onCall({ region: "southamerica-east1", secrets: [FIRMA_KEK] }, async (request) => {
   const contexto = requireAuth(request);
 
   const parsed = generarConsentimientoSchema.safeParse(request.data);
@@ -58,6 +59,13 @@ export const generarConsentimiento = onCall({ region: "southamerica-east1" }, as
   const usuario = usuarioSnap.data() as Usuario;
   const centro = centroSnap.data() as Centro;
 
+  // Se resuelve ANTES de crear nada: una contraseña incorrecta no debe dejar registros a medias.
+  const firmaPrep = await prepararFirma({
+    uid: contexto.uid,
+    centro: centro.nombre,
+    password: parsed.data.firmaElectronica?.password,
+  });
+
   const docRef = pacienteRef.collection("consents").doc();
   const ahora = new Date().toISOString();
   const titulo = CONSENTIMIENTOS[plantilla].titulo;
@@ -82,13 +90,14 @@ export const generarConsentimiento = onCall({ region: "southamerica-east1" }, as
       codigoUnico: codigo,
       archivo: { storagePath, nombre: nombreArchivo },
       emitidoPor: contexto.uid,
+      firma: firmaPrep.info,
       createdAt: ahora,
     });
     return codigo;
   });
 
   try {
-    const [firma, logo] = await Promise.all([obtenerFirmaBuffer(), obtenerLogoBuffer(centro)]);
+    const logo = await obtenerLogoBuffer(centro);
     const pdf = await generarPdfConsentimiento({
       centro,
       profesional: { nombreCompleto: usuario.nombreCompleto, registroProfesional: usuario.registroProfesional },
@@ -103,10 +112,11 @@ export const generarConsentimiento = onCall({ region: "southamerica-east1" }, as
         firmante,
       },
       firmaPaciente: firmaBuffer,
-      firma,
+      firma: firmaPrep.firma,
+      sello: firmaPrep.sello,
       logo,
     });
-    await getStorage().bucket().file(storagePath).save(pdf, { contentType: "application/pdf" });
+    await getStorage().bucket().file(storagePath).save(await firmaPrep.firmar(pdf), { contentType: "application/pdf" });
   } catch {
     await docRef.delete().catch(() => undefined);
     throw new HttpsError("internal", "No se pudo generar el consentimiento en PDF.");
@@ -117,7 +127,7 @@ export const generarConsentimiento = onCall({ region: "southamerica-east1" }, as
     uid: contexto.uid,
     centroId: paciente.centroId,
     entidad: { tipo: "consents", id: docRef.id },
-    detalle: { patientId, visitId, codigoUnico, plantilla },
+    detalle: { firma: firmaPrep.info.tipo, patientId, visitId, codigoUnico, plantilla },
   });
 
   return { id: docRef.id, codigo: codigoUnico, storagePath };

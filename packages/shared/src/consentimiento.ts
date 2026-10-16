@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { firmaElectronicaEntradaSchema } from "./schemas.js";
 
 export const PLANTILLAS_CONSENTIMIENTO = ["general", "extraccion", "endodoncia", "anestesia", "blanqueamiento"] as const;
 export type PlantillaConsentimiento = (typeof PLANTILLAS_CONSENTIMIENTO)[number];
@@ -107,6 +108,7 @@ export const firmaPacienteSchema = z
 export const generarConsentimientoSchema = z.object({
   patientId: z.string().trim().min(1),
   visitId: z.string().trim().min(1),
+  firmaElectronica: firmaElectronicaEntradaSchema,
   plantilla: z.enum(PLANTILLAS_CONSENTIMIENTO),
   tratamiento: z.string().trim().min(1, "Indica el tratamiento").max(300),
   pieza: z

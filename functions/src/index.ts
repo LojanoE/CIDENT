@@ -28,6 +28,12 @@ export { generarResumenAtencion } from "./documentos/generarResumenAtencion.js";
 
 export { onAdjuntoSubido } from "./storage/onAdjuntoSubido.js";
 export { etiquetarAdjunto } from "./adjuntos/etiquetarAdjunto.js";
+export {
+  guardarCertificadoFirma,
+  eliminarCertificadoFirma,
+  guardarFirmaManuscrita,
+  obtenerFirmaManuscrita,
+} from "./firma/gestionFirma.js";
 export { crearEnlacePortal } from "./portal/crearEnlacePortal.js";
 export { revocarEnlacePortal } from "./portal/revocarEnlacePortal.js";
 export { verPortalPaciente } from "./portal/verPortalPaciente.js";

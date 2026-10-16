@@ -10,6 +10,7 @@ import {
   type ProfesionalPdf,
 } from "./layout.js";
 
+import type { SelloFirma } from "./selloFirma.js";
 export interface DatosPresupuesto {
   centro: Centro;
   profesional: ProfesionalPdf;
@@ -28,6 +29,7 @@ export interface DatosPresupuesto {
     observaciones: string;
   };
   firma: Buffer | null;
+  sello?: SelloFirma | null;
   logo: Buffer | null;
 }
 
@@ -166,7 +168,7 @@ export function generarPdfPresupuesto(datos: DatosPresupuesto): Promise<Buffer> 
       bloqueTexto(doc, PAGE_MARGIN_X, y, anchoUtil, "OBSERVACIONES / FORMA DE PAGO", p.observaciones);
     }
 
-    dibujarPie(doc, datos.centro, datos.profesional, datos.firma);
+    dibujarPie(doc, datos.centro, datos.profesional, datos.firma, datos.sello);
 
     doc.end();
   });

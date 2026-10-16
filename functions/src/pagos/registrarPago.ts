@@ -115,7 +115,7 @@ export const registrarPago = onCall({ region: "southamerica-east1" }, async (req
       await pagoRef.update({ profesionalUid });
     }
 
-    const [firma, logo] = await Promise.all([obtenerFirmaBuffer(), obtenerLogoBuffer(centro)]);
+    const [firma, logo] = await Promise.all([obtenerFirmaBuffer(usuario.uid), obtenerLogoBuffer(centro)]);
     const pdf = await generarPdfRecibo({
       centro,
       profesional: { nombreCompleto: usuario.nombreCompleto, registroProfesional: usuario.registroProfesional },

@@ -2,6 +2,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import PDFDocument from "pdfkit";
 import type { Centro } from "@cident/shared";
+import type { SelloFirma } from "./selloFirma.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ASSETS_DIR = join(__dirname, "assets");
@@ -120,8 +121,9 @@ export function asegurarEspacio(doc: PDFKit.PDFDocument, y: number, minimo: numb
 
 /**
  * Pie de página fijo: línea divisoria, datos del centro (`centro.piePdf`),
- * nombre/registro real del profesional y, opcionalmente, imagen de firma
- * (usada solo en el certificado). Salta de página si el cursor actual ya
+ * nombre/registro real del profesional y, opcionalmente, la firma: una imagen
+ * (dibujada o escaneada) o, si el documento se firmó electrónicamente, el
+ * `sello` con QR y nombre del titular. Salta de página si el cursor actual ya
  * pasó la posición fija del pie.
  */
 export function dibujarPie(
@@ -129,6 +131,7 @@ export function dibujarPie(
   centro: Centro,
   profesional: ProfesionalPdf,
   firma?: Buffer | string | null,
+  sello?: SelloFirma | null,
 ): void {
   const yLinea = doc.page.height - cm(4);
   if (doc.y > yLinea) {
@@ -144,7 +147,9 @@ export function dibujarPie(
     .strokeColor(AZUL_TITULO)
     .stroke();
 
-  if (firma) {
+  if (sello) {
+    dibujarSello(doc, sello, yLinea);
+  } else if (firma) {
     try {
       doc.image(firma, PAGE_MARGIN_X, yLinea - cm(2.5), { width: cm(5), height: cm(2) });
     } catch {
@@ -176,4 +181,34 @@ export function dibujarPie(
       width: anchoPagina - 2 * PAGE_MARGIN_X,
       align: "center",
     });
+}
+
+/** Sello visible de firma electrónica: QR de 2 cm y, al lado, quién firmó (estilo FirmaEC). */
+function dibujarSello(doc: PDFKit.PDFDocument, sello: SelloFirma, yLinea: number): void {
+  const lado = cm(2);
+  const y = yLinea - lado - cm(0.3);
+  const xTexto = PAGE_MARGIN_X + lado + cm(0.3);
+  const anchoTexto = doc.page.width - PAGE_MARGIN_X - xTexto;
+
+  try {
+    doc.image(sello.qrPng, PAGE_MARGIN_X, y, { width: lado, height: lado });
+  } catch {
+    // El QR es informativo: si falla, el PDF se firma igual y conserva el texto.
+  }
+
+  doc
+    .fillColor("#666666")
+    .font("Regular")
+    .fontSize(8)
+    .text("Firmado electrónicamente por:", xTexto, y + cm(0.2), { width: anchoTexto });
+  doc
+    .fillColor(GRIS_TEXTO)
+    .font("Bold")
+    .fontSize(10)
+    .text(sello.titular, xTexto, doc.y + cm(0.05), { width: anchoTexto });
+  doc
+    .fillColor("#666666")
+    .font("Regular")
+    .fontSize(7.5)
+    .text("Validar únicamente con FirmaEC", xTexto, doc.y + cm(0.15), { width: anchoTexto });
 }

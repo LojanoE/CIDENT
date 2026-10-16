@@ -13,6 +13,7 @@ import { obtenerUrlDescarga } from "../adjuntos/adjuntosApi";
 import { useAtencion } from "../atenciones/useAtencion";
 import { obtenerPaciente } from "../pacientes/pacientesApi";
 import { importarPresupuestoAceptado } from "../plan/planApi";
+import { useFirmaDocumento } from "../firma/useFirmaDocumento";
 import { ConsentimientoForm } from "./ConsentimientoForm";
 import { PresupuestoForm } from "./PresupuestoForm";
 import {
@@ -40,6 +41,7 @@ const certificadoPorDefecto: CertificadoInput = {
 
 function RecetaForm({ patientId, visitId }: { patientId: string; visitId: string }) {
   const toast = useToast();
+  const { conFirma, dialogo } = useFirmaDocumento();
   const [paciente, setPaciente] = useState<Paciente | null>(null);
   useEffect(() => {
     let vigente = true;
@@ -60,7 +62,10 @@ function RecetaForm({ patientId, visitId }: { patientId: string; visitId: string
 
   const enviar = async (values: RecetaInput) => {
     try {
-      await generarReceta({ ...values, patientId, visitId });
+      const emitida = await conFirma((firmaElectronica) =>
+        generarReceta({ ...values, patientId, visitId, firmaElectronica }),
+      );
+      if (!emitida) return; // canceló la firma
       reset(recetaPorDefecto);
       toast.ok("Receta generada.");
     } catch (err) {
@@ -70,6 +75,7 @@ function RecetaForm({ patientId, visitId }: { patientId: string; visitId: string
 
   return (
     <form onSubmit={handleSubmit(enviar)} noValidate className="space-y-3">
+      {dialogo}
       {alertas.length > 0 && (
         <div role="alert" className="flex items-start gap-2 rounded-md border border-danger/30 bg-danger/10 p-3 text-sm text-danger">
           <AlertTriangle aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
@@ -97,6 +103,7 @@ function RecetaForm({ patientId, visitId }: { patientId: string; visitId: string
 
 function CertificadoForm({ patientId, visitId }: { patientId: string; visitId: string }) {
   const toast = useToast();
+  const { conFirma, dialogo } = useFirmaDocumento();
   const {
     register,
     handleSubmit,
@@ -106,7 +113,10 @@ function CertificadoForm({ patientId, visitId }: { patientId: string; visitId: s
 
   const enviar = async (values: CertificadoInput) => {
     try {
-      await generarCertificado({ ...values, patientId, visitId });
+      const emitido = await conFirma((firmaElectronica) =>
+        generarCertificado({ ...values, patientId, visitId, firmaElectronica }),
+      );
+      if (!emitido) return; // canceló la firma
       reset(certificadoPorDefecto);
       toast.ok("Certificado generado.");
     } catch (err) {
@@ -116,6 +126,7 @@ function CertificadoForm({ patientId, visitId }: { patientId: string; visitId: s
 
   return (
     <form onSubmit={handleSubmit(enviar)} noValidate className="space-y-3">
+      {dialogo}
       <Field label="Motivo" error={errors.motivo?.message}>
         <Textarea rows={2} {...register("motivo")} />
       </Field>
@@ -131,12 +142,17 @@ function CertificadoForm({ patientId, visitId }: { patientId: string; visitId: s
 
 function ResumenAtencionBoton({ patientId, visitId }: { patientId: string; visitId: string }) {
   const toast = useToast();
+  const { conFirma, dialogo } = useFirmaDocumento();
   const [generando, setGenerando] = useState(false);
 
   const generar = async () => {
     setGenerando(true);
     try {
-      const { storagePath } = await generarResumenAtencion({ patientId, visitId });
+      const resumen = await conFirma((firmaElectronica) =>
+        generarResumenAtencion({ patientId, visitId, firmaElectronica }),
+      );
+      if (!resumen) return; // canceló la firma
+      const { storagePath } = resumen;
       const url = await obtenerUrlDescarga(storagePath);
       window.open(url, "_blank", "noopener,noreferrer");
     } catch (err) {
@@ -147,10 +163,13 @@ function ResumenAtencionBoton({ patientId, visitId }: { patientId: string; visit
   };
 
   return (
-    <Button type="button" variant="secondary" loading={generando} onClick={generar}>
-      <FileText aria-hidden className="h-4 w-4" />
-      Generar resumen de atención (PDF)
-    </Button>
+    <>
+      {dialogo}
+      <Button type="button" variant="secondary" loading={generando} onClick={generar}>
+        <FileText aria-hidden className="h-4 w-4" />
+        Generar resumen de atención (PDF)
+      </Button>
+    </>
   );
 }
 
