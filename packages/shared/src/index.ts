@@ -17,3 +17,4 @@ export * from "./consentimiento.js";
 export * from "./indicadores.js";
 export * from "./fotosClinicas.js";
 export * from "./certificado.js";
+export * from "./cie10.js";

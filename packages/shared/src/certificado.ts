@@ -52,6 +52,12 @@ export function formatearCompromiso(v: string | undefined): string {
   return t;
 }
 
+/** «K02.1 Caries de la dentina» → «K02.1 (Caries de la dentina)»; el texto libre queda igual. */
+function conDescripcionEntreParentesis(dx: string): string {
+  const m = /^([A-Z]\d{2}(?:\.\d)?)\s+(.+)$/.exec(dx);
+  return m ? `${m[1]} (${m[2]})` : dx;
+}
+
 export const CIERRE_CERTIFICADO = "La presente certificación se expide por solicitud del paciente para fines pertinentes.";
 
 /** Arma los párrafos omitiendo las frases cuyos datos están vacíos (nunca quedan huecos). */
@@ -64,7 +70,7 @@ export function textoCertificado(d: DatosTextoCertificado): TextoCertificado {
   let primero =
     `Por medio del presente certifico haber atendido a ${nombre}, con cédula de identidad ${d.paciente.cedula}, ` +
     `el día ${fechaLarga(d.fechaAtencion)}, por el servicio de Consulta odontológica externa`;
-  if (dx) primero += ` con un diagnóstico CIE-10 ${dx}`;
+  if (dx) primero += ` con un diagnóstico CIE-10 ${conDescripcionEntreParentesis(dx)}`;
   if (compromiso && piezas) primero += `${dx ? "," : " con"} el ${compromiso} de compromiso de la pieza dental ${piezas}`;
   else if (piezas) primero += `${dx ? "," : " con"} compromiso de la pieza dental ${piezas}`;
   else if (compromiso) primero += `${dx ? "," : " con"} el ${compromiso} de compromiso`;

@@ -14,6 +14,7 @@ import { useAtencion } from "../atenciones/useAtencion";
 import { obtenerPaciente } from "../pacientes/pacientesApi";
 import { importarPresupuestoAceptado } from "../plan/planApi";
 import { useFirmaDocumento } from "../firma/useFirmaDocumento";
+import { Cie10Campo } from "./Cie10Campo";
 import { ConsentimientoForm } from "./ConsentimientoForm";
 import { PresupuestoForm } from "./PresupuestoForm";
 import {
@@ -125,6 +126,7 @@ function CertificadoForm({ patientId, visitId }: { patientId: string; visitId: s
     handleSubmit,
     reset,
     watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<CertificadoInput>({ resolver: zodResolver(certificadoSchema), defaultValues: certificadoPorDefecto });
 
@@ -157,8 +159,11 @@ function CertificadoForm({ patientId, visitId }: { patientId: string; visitId: s
   return (
     <form onSubmit={handleSubmit(enviar)} noValidate className="space-y-3">
       {dialogo}
-      <Field label="Diagnóstico (CIE-10)" hint="Código y, si quieres, el nombre. Ej.: K02.1 caries de la dentina." error={errors.diagnosticoCie10?.message}>
-        <Input {...register("diagnosticoCie10")} />
+      <Field label="Diagnóstico (CIE-10)" hint="Busca por código o nombre y elige de la lista." error={errors.diagnosticoCie10?.message}>
+        <Cie10Campo
+          value={valores.diagnosticoCie10}
+          onChange={(v) => setValue("diagnosticoCie10", v, { shouldDirty: true })}
+        />
       </Field>
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label="% de compromiso" hint="Ej.: 30" error={errors.compromiso?.message}>

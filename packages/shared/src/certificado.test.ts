@@ -44,6 +44,11 @@ describe("textoCertificado", () => {
     expect(t.cierre).toContain("fines pertinentes");
   });
 
+  it("pone la descripción del CIE-10 entre paréntesis", () => {
+    const t = textoCertificado({ paciente, fechaAtencion: "2026-10-01", diagnosticoCie10: "K02.1 Caries de la dentina" });
+    expect(t.cuerpo[0]).toMatch(/diagnóstico CIE-10 K02\.1 \(Caries de la dentina\)\.$/);
+  });
+
   it("omite las frases sin datos, sin dejar huecos", () => {
     const t = textoCertificado({ paciente, fechaAtencion: "2026-10-01" });
     expect(t.cuerpo).toHaveLength(1);
