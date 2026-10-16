@@ -83,6 +83,12 @@ export const recetaSchema = z.object({
 export type RecetaInput = z.infer<typeof recetaSchema>;
 
 export const certificadoSchema = z.object({
+  diagnosticoCie10: z.string().trim().max(200).default(""),
+  compromiso: z.string().trim().max(40).default(""),
+  piezas: z.string().trim().max(100).default(""),
+  procedimiento: z.string().trim().max(500).default(""),
+  recomendacion: z.string().trim().max(1000).default(""),
+  /** Certificados anteriores a la plantilla en prosa: ya no los pide el formulario. */
   motivo: z.string().trim().max(500).default(""),
   observaciones: z.string().trim().max(2000).default(""),
 });
@@ -278,12 +284,19 @@ export const LOGO_MAX_BYTES = 1024 * 1024;
 /** Tipos de imagen aceptados para el logo de un centro. */
 export const LOGO_MIME_TYPES = ["image/png", "image/jpeg"] as const;
 
+export const actualizarCargoSchema = z.object({
+  cargo: z.string().trim().max(80),
+});
+export type ActualizarCargoInput = z.infer<typeof actualizarCargoSchema>;
+
 export const actualizarCentroSchema = z.object({
   centroId: z.string().trim().min(1),
   nombre: z.string().trim().min(1).max(150).optional(),
   direccion: z.string().trim().max(200).optional(),
   telefono: z.string().trim().max(40).optional(),
   piePdf: z.string().trim().max(300).optional(),
+  /** Ciudad que encabeza los certificados («El Pangui, 16 de octubre de 2026»). */
+  ciudad: z.string().trim().max(80).optional(),
   /** Vacío vuelve al mensaje por defecto. */
   plantillaRecordatorio: z.string().trim().max(600).optional(),
   // httpsCallable serializa los campos `undefined` del payload como `null`,

@@ -1,4 +1,5 @@
 import {
+  actualizarCargoSchema,
   FIRMA_MANUSCRITA_MAX_BASE64,
   guardarCertificadoFirmaSchema,
   guardarFirmaManuscritaSchema,
@@ -99,6 +100,28 @@ export const guardarFirmaManuscrita = onCall(REGION, async (request) => {
     entidad: { tipo: "users", id: uid },
   });
   return { firmaManuscritaAt: ahora };
+});
+
+/** El cargo que sale bajo la firma de sus documentos («Odontóloga general»). Solo el propio. */
+export const actualizarCargo = onCall(REGION, async (request) => {
+  const { uid, claims } = requireAuth(request);
+
+  const parsed = actualizarCargoSchema.safeParse(request.data);
+  if (!parsed.success) {
+    throw new HttpsError("invalid-argument", "Datos inválidos.");
+  }
+  const { cargo } = parsed.data;
+
+  await getFirestore().collection("users").doc(uid).update({ cargo });
+
+  await registrarAuditoria({
+    accion: "cargo_actualizado",
+    uid,
+    centroId: claims.centroId,
+    entidad: { tipo: "users", id: uid },
+    detalle: { cargo },
+  });
+  return { cargo };
 });
 
 /** Devuelve la firma dibujada del propio usuario para mostrar la vista previa. */

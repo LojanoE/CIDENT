@@ -1,5 +1,5 @@
 import type { Certificado, Consentimiento, Paciente, CertificadoInput, EstadoPresupuesto, Presupuesto, Receta, RecetaInput } from "@cident/shared";
-import { ESTADOS_PRESUPUESTO, alertasAnamnesis, certificadoSchema, recetaSchema } from "@cident/shared";
+import { ESTADOS_PRESUPUESTO, alertasAnamnesis, certificadoSchema, recetaSchema, textoCertificado } from "@cident/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { onSnapshot, query, where } from "firebase/firestore";
 import { AlertTriangle, Download, FileText } from "lucide-react";
@@ -7,7 +7,7 @@ import { useEffect, useId, useState, type ReactNode } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useParams } from "react-router-dom";
 import { useAuth } from "../../app/AuthProvider";
-import { Badge, Button, Card, CardBody, Field, Select, Textarea, useToast, type TonoBadge } from "../../components/ui";
+import { Badge, Button, Card, CardBody, Field, Input, Select, Textarea, useToast, type TonoBadge } from "../../components/ui";
 import { mensajeError } from "../../lib/mensajeError";
 import { obtenerUrlDescarga } from "../adjuntos/adjuntosApi";
 import { useAtencion } from "../atenciones/useAtencion";
@@ -35,6 +35,11 @@ const recetaPorDefecto: RecetaInput = {
 };
 
 const certificadoPorDefecto: CertificadoInput = {
+  diagnosticoCie10: "",
+  compromiso: "",
+  piezas: "",
+  procedimiento: "",
+  recomendacion: "",
   motivo: "",
   observaciones: "",
 };
@@ -104,10 +109,22 @@ function RecetaForm({ patientId, visitId }: { patientId: string; visitId: string
 function CertificadoForm({ patientId, visitId }: { patientId: string; visitId: string }) {
   const toast = useToast();
   const { conFirma, dialogo } = useFirmaDocumento();
+  const { atencion } = useAtencion();
+  const [paciente, setPaciente] = useState<Paciente | null>(null);
+  useEffect(() => {
+    let vigente = true;
+    obtenerPaciente(patientId)
+      .then((p) => vigente && setPaciente(p))
+      .catch(() => undefined); // La vista previa es un extra: sin ella el certificado se genera igual.
+    return () => {
+      vigente = false;
+    };
+  }, [patientId]);
   const {
     register,
     handleSubmit,
     reset,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<CertificadoInput>({ resolver: zodResolver(certificadoSchema), defaultValues: certificadoPorDefecto });
 
@@ -124,15 +141,47 @@ function CertificadoForm({ patientId, visitId }: { patientId: string; visitId: s
     }
   };
 
+  const valores = watch();
+  const vistaPrevia = paciente
+    ? textoCertificado({
+        paciente: { nombres: paciente.nombres, apellidos: paciente.apellidos, cedula: paciente.cedula },
+        fechaAtencion: atencion.fecha,
+        diagnosticoCie10: valores.diagnosticoCie10,
+        compromiso: valores.compromiso,
+        piezas: valores.piezas,
+        procedimiento: valores.procedimiento,
+        recomendacion: valores.recomendacion,
+      })
+    : null;
+
   return (
     <form onSubmit={handleSubmit(enviar)} noValidate className="space-y-3">
       {dialogo}
-      <Field label="Motivo" error={errors.motivo?.message}>
-        <Textarea rows={2} {...register("motivo")} />
+      <Field label="Diagnóstico (CIE-10)" hint="Código y, si quieres, el nombre. Ej.: K02.1 caries de la dentina." error={errors.diagnosticoCie10?.message}>
+        <Input {...register("diagnosticoCie10")} />
       </Field>
-      <Field label="Observaciones" error={errors.observaciones?.message}>
-        <Textarea rows={2} {...register("observaciones")} />
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Field label="% de compromiso" hint="Ej.: 30" error={errors.compromiso?.message}>
+          <Input inputMode="decimal" {...register("compromiso")} />
+        </Field>
+        <Field label="Pieza(s) dental(es)" hint="Ej.: 1.6 y 2.5" error={errors.piezas?.message}>
+          <Input {...register("piezas")} />
+        </Field>
+      </div>
+      <Field label="Procedimiento realizado" hint="Completa «Se procedió a realizar…»." error={errors.procedimiento?.message}>
+        <Textarea rows={2} {...register("procedimiento")} />
       </Field>
+      <Field label="Recomendación" hint="Completa «Se recomienda…»." error={errors.recomendacion?.message}>
+        <Textarea rows={2} {...register("recomendacion")} />
+      </Field>
+      {vistaPrevia && (
+        <div className="space-y-2 rounded-md border border-line bg-accent-wash p-3 text-sm text-ink-soft">
+          <p className="text-xs font-medium uppercase tracking-wide">Así se leerá</p>
+          {[...vistaPrevia.cuerpo, vistaPrevia.cierre].map((parrafo) => (
+            <p key={parrafo}>{parrafo}</p>
+          ))}
+        </div>
+      )}
       <Button type="submit" loading={isSubmitting}>
         Generar certificado
       </Button>

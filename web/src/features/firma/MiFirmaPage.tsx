@@ -4,6 +4,7 @@ import { Badge, Button, Card, CardBody, ConfirmarDialog, Field, Input, Skeleton,
 import { mensajeError } from "../../lib/mensajeError";
 import { FirmaCanvas } from "../documentos/FirmaCanvas";
 import {
+  actualizarCargo,
   archivoABase64,
   certificadoVencido,
   diasParaVencer,
@@ -203,11 +204,58 @@ function FirmaDibujadaCard() {
   );
 }
 
+function CargoCard() {
+  const toast = useToast();
+  const { cargo, cargado } = usePerfilFirma();
+  const [texto, setTexto] = useState("");
+  const [guardando, setGuardando] = useState(false);
+
+  // Se parte del cargo guardado una sola vez, cuando llega el perfil.
+  useEffect(() => {
+    if (cargado) setTexto(cargo ?? "");
+  }, [cargado, cargo]);
+
+  const guardar = async (e: FormEvent) => {
+    e.preventDefault();
+    setGuardando(true);
+    try {
+      await actualizarCargo(texto.trim());
+      toast.ok("Cargo guardado.");
+    } catch (err) {
+      toast.error(mensajeError(err));
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardBody>
+        <form onSubmit={guardar} className="space-y-3">
+          <div>
+            <h2 className="text-base font-semibold">Cargo</h2>
+            <p className="mt-1 text-sm text-ink-soft">
+              Sale bajo tu nombre en el certificado, por ejemplo «Odontóloga general» u «Ortodoncista».
+            </p>
+          </div>
+          <Field label="Cargo">
+            <Input value={texto} maxLength={80} disabled={!cargado || guardando} onChange={(e) => setTexto(e.target.value)} />
+          </Field>
+          <Button type="submit" loading={guardando} disabled={!cargado || texto.trim() === (cargo ?? "")}>
+            Guardar cargo
+          </Button>
+        </form>
+      </CardBody>
+    </Card>
+  );
+}
+
 /** «Mi firma»: cada profesional gestiona su propia firma, electrónica o dibujada. */
 export function MiFirmaPage() {
   return (
     <div className="max-w-3xl space-y-4">
       <PageHeader title="Mi firma" description="Cómo salen firmados tus recetas, certificados, presupuestos y consentimientos." />
+      <CargoCard />
       <FirmaElectronicaCard />
       <FirmaDibujadaCard />
     </div>

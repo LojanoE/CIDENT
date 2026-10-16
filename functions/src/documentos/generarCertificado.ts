@@ -18,7 +18,8 @@ export const generarCertificado = onCall({ region: "southamerica-east1", secrets
   if (!parsed.success) {
     throw new HttpsError("invalid-argument", "Datos de certificado inválidos.");
   }
-  const { patientId, visitId, motivo, observaciones } = parsed.data;
+  const { patientId, visitId, diagnosticoCie10, compromiso, piezas, procedimiento, recomendacion, motivo, observaciones } =
+    parsed.data;
 
   const db = getFirestore();
   const pacienteRef = db.collection("patients").doc(patientId);
@@ -61,6 +62,9 @@ export const generarCertificado = onCall({ region: "southamerica-east1", secrets
 
   const docRef = pacienteRef.collection("certificates").doc();
   const ahora = new Date().toISOString();
+  // La fecha del encabezado es la de hoy en Ecuador, no la UTC (de noche cambiaría de día).
+  const fechaEmision = new Date().toLocaleDateString("en-CA", { timeZone: "America/Guayaquil" });
+  const camposClinicos = { diagnosticoCie10, compromiso, piezas, procedimiento, recomendacion };
 
   const codigoUnico = await db.runTransaction(async (tx) => {
     const codigo = await siguienteCodigo(tx, paciente.centroId, "certificado");
@@ -71,6 +75,7 @@ export const generarCertificado = onCall({ region: "southamerica-east1", secrets
       patientId,
       visitId,
       fecha: visita.fecha,
+      ...camposClinicos,
       motivo,
       observaciones,
       codigoUnico: codigo,
@@ -88,9 +93,13 @@ export const generarCertificado = onCall({ region: "southamerica-east1", secrets
     const logo = await obtenerLogoBuffer(centro);
     const pdf = await generarPdfCertificado({
       centro,
-      profesional: { nombreCompleto: usuario.nombreCompleto, registroProfesional: usuario.registroProfesional },
+      profesional: {
+        nombreCompleto: usuario.nombreCompleto,
+        registroProfesional: usuario.registroProfesional,
+        cargo: usuario.cargo,
+      },
       paciente,
-      certificado: { fecha: visita.fecha, motivo, observaciones, codigoUnico },
+      certificado: { fecha: visita.fecha, fechaEmision, ...camposClinicos, motivo, observaciones, codigoUnico },
       firma: firmaPrep.firma,
       sello: firmaPrep.sello,
       logo,

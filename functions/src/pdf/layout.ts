@@ -21,6 +21,8 @@ const GRIS_TEXTO = "#333333";
 export interface ProfesionalPdf {
   nombreCompleto: string;
   registroProfesional: string;
+  /** Cargo bajo la firma («Odontóloga general»). */
+  cargo?: string;
 }
 
 export function crearDocumento(): PDFKit.PDFDocument {
@@ -183,15 +185,18 @@ export function dibujarPie(
     });
 }
 
-/** Sello visible de firma electrónica: QR de 2 cm y, al lado, quién firmó (estilo FirmaEC). */
-function dibujarSello(doc: PDFKit.PDFDocument, sello: SelloFirma, yLinea: number): void {
+/**
+ * Sello visible de firma electrónica: QR de 2 cm y, al lado, quién firmó (estilo FirmaEC).
+ * Se dibuja terminando 0,3 cm por encima de `yLinea`, empezando en `x`.
+ */
+export function dibujarSello(doc: PDFKit.PDFDocument, sello: SelloFirma, yLinea: number, x = PAGE_MARGIN_X): void {
   const lado = cm(2);
   const y = yLinea - lado - cm(0.3);
-  const xTexto = PAGE_MARGIN_X + lado + cm(0.3);
+  const xTexto = x + lado + cm(0.3);
   const anchoTexto = doc.page.width - PAGE_MARGIN_X - xTexto;
 
   try {
-    doc.image(sello.qrPng, PAGE_MARGIN_X, y, { width: lado, height: lado });
+    doc.image(sello.qrPng, x, y, { width: lado, height: lado });
   } catch {
     // El QR es informativo: si falla, el PDF se firma igual y conserva el texto.
   }

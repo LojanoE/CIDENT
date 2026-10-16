@@ -103,6 +103,7 @@ function valoresDe(centro: Centro): ActualizarCentroInput {
     direccion: centro.direccion,
     telefono: centro.telefono,
     piePdf: centro.piePdf,
+    ciudad: centro.ciudad ?? "",
     plantillaRecordatorio: centro.plantillaRecordatorio ?? PLANTILLA_RECORDATORIO_DEFECTO,
   };
 }
@@ -244,6 +245,13 @@ function CentroForm({ centro }: { centro: Centro }) {
           </Field>
           <Field label="Dirección" error={errors.direccion?.message}>
             <Input {...register("direccion")} />
+          </Field>
+          <Field
+            label="Ciudad"
+            hint="Encabeza el certificado: «El Pangui, 16 de octubre de 2026»."
+            error={errors.ciudad?.message}
+          >
+            <Input {...register("ciudad")} />
           </Field>
           <Field label="Teléfono" error={errors.telefono?.message}>
             <Input type="tel" {...register("telefono")} />

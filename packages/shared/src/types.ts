@@ -24,6 +24,8 @@ export interface Centro {
   direccion: string;
   telefono: string;
   piePdf: string;
+  /** Ciudad del encabezado de los certificados; ausente = sin ciudad. */
+  ciudad?: string;
   /** Ausente o `null`: los PDFs y la web usan el logo Luna-Dental por defecto. */
   logo?: LogoCentro | null;
   /** Último % de IVA usado en un presupuesto; prellena el formulario. */
@@ -53,6 +55,8 @@ export interface Usuario {
   usuario: string;
   nombreCompleto: string;
   registroProfesional: string;
+  /** Cargo bajo la firma («Odontóloga general»); lo edita el propio profesional en «Mi firma». */
+  cargo?: string;
   /** Datos públicos del certificado .p12 guardado (cifrado, solo backend); sin contraseña. */
   firmaElectronica?: CertificadoFirma;
   /** Marca de que el usuario dibujó su firma; la imagen vive solo en Storage (backend). */
@@ -285,6 +289,12 @@ export interface Certificado {
   patientId: string;
   visitId: string;
   fecha: string;
+  diagnosticoCie10?: string;
+  compromiso?: string;
+  piezas?: string;
+  procedimiento?: string;
+  recomendacion?: string;
+  /** Solo en certificados anteriores a la plantilla en prosa. */
   motivo: string;
   observaciones: string;
   codigoUnico: string;

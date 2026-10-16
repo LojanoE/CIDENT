@@ -33,6 +33,7 @@ export {
   eliminarCertificadoFirma,
   guardarFirmaManuscrita,
   obtenerFirmaManuscrita,
+  actualizarCargo,
 } from "./firma/gestionFirma.js";
 export { crearEnlacePortal } from "./portal/crearEnlacePortal.js";
 export { revocarEnlacePortal } from "./portal/revocarEnlacePortal.js";

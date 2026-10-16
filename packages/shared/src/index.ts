@@ -16,3 +16,4 @@ export * from "./anamnesis.js";
 export * from "./consentimiento.js";
 export * from "./indicadores.js";
 export * from "./fotosClinicas.js";
+export * from "./certificado.js";

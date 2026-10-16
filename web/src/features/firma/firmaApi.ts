@@ -1,4 +1,9 @@
-import type { CertificadoFirma, GuardarCertificadoFirmaInput, GuardarFirmaManuscritaInput } from "@cident/shared";
+import type {
+  ActualizarCargoInput,
+  CertificadoFirma,
+  GuardarCertificadoFirmaInput,
+  GuardarFirmaManuscritaInput,
+} from "@cident/shared";
 import { doc, onSnapshot } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import { useEffect, useState } from "react";
@@ -15,6 +20,11 @@ const guardarManuscritaCallable = httpsCallable<GuardarFirmaManuscritaInput, { f
   "guardarFirmaManuscrita",
 );
 const obtenerManuscritaCallable = httpsCallable<void, { dataUrl: string | null }>(functions, "obtenerFirmaManuscrita");
+const actualizarCargoCallable = httpsCallable<ActualizarCargoInput, { cargo: string }>(functions, "actualizarCargo");
+
+export async function actualizarCargo(cargo: string): Promise<void> {
+  await actualizarCargoCallable({ cargo });
+}
 
 export async function guardarCertificadoFirma(input: GuardarCertificadoFirmaInput): Promise<CertificadoFirma> {
   return (await guardarCertificadoCallable(input)).data;
@@ -51,6 +61,7 @@ export interface PerfilFirma {
   fallo?: boolean;
   firmaElectronica?: CertificadoFirma;
   firmaManuscritaAt?: string;
+  cargo?: string;
 }
 
 /** Estado de la firma del usuario actual (su `users/{uid}`, que él puede leer). */
@@ -64,9 +75,12 @@ export function usePerfilFirma(): PerfilFirma {
     return onSnapshot(
       doc(db, "users", uid),
       (snap) => {
-        const d = snap.data() as { firmaElectronica?: CertificadoFirma; firmaManuscritaAt?: string } | undefined;
+        const d = snap.data() as
+          | { firmaElectronica?: CertificadoFirma; firmaManuscritaAt?: string; cargo?: string }
+          | undefined;
         setPerfil({
           cargado: true,
+          ...(d?.cargo ? { cargo: d.cargo } : {}),
           ...(d?.firmaElectronica ? { firmaElectronica: d.firmaElectronica } : {}),
           ...(d?.firmaManuscritaAt ? { firmaManuscritaAt: d.firmaManuscritaAt } : {}),
         });

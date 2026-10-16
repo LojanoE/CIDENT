@@ -23,6 +23,7 @@ export type AccionAuditoria =
   | "firma_certificado_guardado"
   | "firma_certificado_eliminado"
   | "firma_manuscrita_guardada"
+  | "cargo_actualizado"
   | "atencion_eliminada"
   | "atencion_anulada"
   | "portal_enlace_creado"
