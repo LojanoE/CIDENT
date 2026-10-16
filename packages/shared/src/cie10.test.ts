@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buscarCie10, CIE10_ODONTOLOGIA, textoCie10 } from "./cie10.js";
+import { buscarCie10, CIE10_ODONTOLOGIA, separarDiagnosticos, textoCie10, unirDiagnosticos } from "./cie10.js";
 
 describe("catálogo CIE-10", () => {
   it("no repite códigos", () => {
@@ -43,5 +43,15 @@ describe("buscarCie10", () => {
 describe("textoCie10", () => {
   it("une código y descripción", () => {
     expect(textoCie10({ codigo: "K02.1", descripcion: "Caries de la dentina" })).toBe("K02.1 Caries de la dentina");
+  });
+});
+
+describe("unirDiagnosticos / separarDiagnosticos", () => {
+  it("son inversos y descartan vacíos", () => {
+    const lista = ["K04.0 Pulpitis", "K02.1 Caries de la dentina"];
+    expect(unirDiagnosticos(lista)).toBe("K04.0 Pulpitis; K02.1 Caries de la dentina");
+    expect(separarDiagnosticos(unirDiagnosticos(lista))).toEqual(lista);
+    expect(separarDiagnosticos(" ; ")).toEqual([]);
+    expect(separarDiagnosticos(undefined)).toEqual([]);
   });
 });

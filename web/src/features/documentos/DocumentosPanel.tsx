@@ -1,5 +1,5 @@
 import type { Certificado, Consentimiento, Paciente, CertificadoInput, EstadoPresupuesto, Presupuesto, Receta, RecetaInput } from "@cident/shared";
-import { ESTADOS_PRESUPUESTO, alertasAnamnesis, certificadoSchema, recetaSchema, textoCertificado } from "@cident/shared";
+import { ESTADOS_PRESUPUESTO, alertasAnamnesis, certificadoSchema, recetaSchema, separarDiagnosticos, textoCertificado, unirDiagnosticos } from "@cident/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { onSnapshot, query, where } from "firebase/firestore";
 import { AlertTriangle, Download, FileText } from "lucide-react";
@@ -63,8 +63,18 @@ function RecetaForm({ patientId, visitId }: { patientId: string; visitId: string
     register,
     handleSubmit,
     reset,
+    getFieldState,
     formState: { errors, isSubmitting },
+    watch,
+    setValue,
   } = useForm<RecetaInput>({ resolver: zodResolver(recetaSchema), defaultValues: recetaPorDefecto });
+  const diagnostico = watch("diagnostico");
+  const { atencion } = useAtencion();
+  const delaAtencion = unirDiagnosticos(atencion.diagnosticos ?? []);
+  // El diagnóstico de la ficha se copia mientras nadie haya tocado el campo en esta receta.
+  useEffect(() => {
+    if (!getFieldState("diagnostico").isDirty) setValue("diagnostico", delaAtencion);
+  }, [delaAtencion, getFieldState, setValue]);
 
   const enviar = async (values: RecetaInput) => {
     try {
@@ -72,7 +82,7 @@ function RecetaForm({ patientId, visitId }: { patientId: string; visitId: string
         generarReceta({ ...values, patientId, visitId, firmaElectronica }),
       );
       if (!emitida) return; // canceló la firma
-      reset(recetaPorDefecto);
+      reset({ ...recetaPorDefecto, diagnostico: delaAtencion });
       toast.ok("Receta generada.");
     } catch (err) {
       toast.error(mensajeError(err));
@@ -88,8 +98,15 @@ function RecetaForm({ patientId, visitId }: { patientId: string; visitId: string
           <span>Tener en cuenta al recetar: {alertas.map((a) => a.texto).join(" · ")}</span>
         </div>
       )}
-      <Field label="Diagnóstico" error={errors.diagnostico?.message}>
-        <Textarea rows={2} {...register("diagnostico")} />
+      <Field
+        label="Diagnóstico (CIE-10)"
+        hint="Viene de la ficha de la atención; puedes cambiarlo aquí."
+        error={errors.diagnostico?.message}
+      >
+        <Cie10Campo
+          value={separarDiagnosticos(diagnostico)}
+          onChange={(v) => setValue("diagnostico", unirDiagnosticos(v), { shouldDirty: true })}
+        />
       </Field>
       <Field label="Indicaciones" error={errors.indicaciones?.message}>
         <Textarea rows={2} {...register("indicaciones")} />
@@ -127,8 +144,14 @@ function CertificadoForm({ patientId, visitId }: { patientId: string; visitId: s
     reset,
     watch,
     setValue,
+    getFieldState,
     formState: { errors, isSubmitting },
   } = useForm<CertificadoInput>({ resolver: zodResolver(certificadoSchema), defaultValues: certificadoPorDefecto });
+  const delaAtencion = unirDiagnosticos(atencion.diagnosticos ?? []);
+  // El diagnóstico de la ficha se copia mientras nadie haya tocado el campo en este certificado.
+  useEffect(() => {
+    if (!getFieldState("diagnosticoCie10").isDirty) setValue("diagnosticoCie10", delaAtencion);
+  }, [delaAtencion, getFieldState, setValue]);
 
   const enviar = async (values: CertificadoInput) => {
     try {
@@ -136,7 +159,7 @@ function CertificadoForm({ patientId, visitId }: { patientId: string; visitId: s
         generarCertificado({ ...values, patientId, visitId, firmaElectronica }),
       );
       if (!emitido) return; // canceló la firma
-      reset(certificadoPorDefecto);
+      reset({ ...certificadoPorDefecto, diagnosticoCie10: delaAtencion });
       toast.ok("Certificado generado.");
     } catch (err) {
       toast.error(mensajeError(err));
@@ -159,10 +182,10 @@ function CertificadoForm({ patientId, visitId }: { patientId: string; visitId: s
   return (
     <form onSubmit={handleSubmit(enviar)} noValidate className="space-y-3">
       {dialogo}
-      <Field label="Diagnóstico (CIE-10)" hint="Busca por código o nombre y elige de la lista." error={errors.diagnosticoCie10?.message}>
+      <Field label="Diagnóstico (CIE-10)" hint="Viene de la ficha de la atención; puedes cambiarlo aquí." error={errors.diagnosticoCie10?.message}>
         <Cie10Campo
-          value={valores.diagnosticoCie10}
-          onChange={(v) => setValue("diagnosticoCie10", v, { shouldDirty: true })}
+          value={separarDiagnosticos(valores.diagnosticoCie10)}
+          onChange={(v) => setValue("diagnosticoCie10", unirDiagnosticos(v), { shouldDirty: true })}
         />
       </Field>
       <div className="grid gap-3 sm:grid-cols-2">

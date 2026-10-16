@@ -20,6 +20,7 @@ import {
 import { mensajeError } from "../../lib/mensajeError";
 import { vincularCitaAAtencion } from "../agenda/agendaApi";
 import { useGuardaCambios } from "../../lib/useGuardaCambios";
+import { Cie10Campo } from "../documentos/Cie10Campo";
 import { actualizarAtencion, crearAtencion, obtenerAtencion } from "./atencionesApi";
 import { AtencionContext } from "./useAtencion";
 
@@ -37,6 +38,7 @@ const valoresPorDefecto = (): AtencionInput => ({
   antecedentes: "",
   signosVitales: "",
   examenEstomatognatico: "",
+  diagnosticos: [],
   indicadores: { placa: 0, calculo: 0, gingivitis: 0 },
   cpo: { c: 0, p: 0, o: 0 },
   notas: "",
@@ -50,6 +52,7 @@ function desdeAtencion(a: Atencion): AtencionInput {
     antecedentes: a.antecedentes,
     signosVitales: a.signosVitales,
     examenEstomatognatico: a.examenEstomatognatico,
+    diagnosticos: a.diagnosticos ?? [],
     indicadores: a.indicadores,
     cpo: { c: a.cpo.c, p: a.cpo.p, o: a.cpo.o },
     notas: a.notas,
@@ -204,6 +207,20 @@ export function AtencionFormPage() {
             </Field>
             <Field label="5. Examen estomatognático" error={errors.examenEstomatognatico?.message}>
               <Textarea rows={3} {...register("examenEstomatognatico")} />
+            </Field>
+          </Seccion>
+
+          <Seccion titulo="Diagnóstico">
+            <Field
+              label="Diagnóstico (CIE-10)"
+              hint="Se elige aquí una sola vez y se usa en la receta, el certificado y el resumen de la atención."
+              error={errors.diagnosticos?.message}
+            >
+              <Controller
+                control={control}
+                name="diagnosticos"
+                render={({ field }) => <Cie10Campo value={field.value} onChange={field.onChange} />}
+              />
             </Field>
           </Seccion>
 

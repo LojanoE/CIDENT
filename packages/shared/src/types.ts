@@ -148,6 +148,8 @@ export interface Atencion {
   antecedentes: string;
   signosVitales: string;
   examenEstomatognatico: string;
+  /** Diagnósticos CIE-10 de la atención («K02.1 Caries de la dentina»); alimentan receta, certificado y resumen. */
+  diagnosticos?: string[];
   indicadores: IndicadoresHigiene;
   cpo: ResultadoCPO;
   estado: EstadoAtencion;

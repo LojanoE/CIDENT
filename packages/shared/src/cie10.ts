@@ -177,3 +177,15 @@ export function buscarCie10(texto: string, limite = 8, catalogo: readonly Cie10[
 export function textoCie10(item: Cie10): string {
   return `${item.codigo} ${item.descripcion}`;
 }
+
+/** Varios diagnósticos viajan en un solo texto (recetas y certificados) separados por «; ». */
+export function unirDiagnosticos(lista: readonly string[]): string {
+  return lista.map((d) => d.trim()).filter(Boolean).join("; ");
+}
+
+export function separarDiagnosticos(valor: string | undefined): string[] {
+  return (valor ?? "")
+    .split(";")
+    .map((d) => d.trim())
+    .filter(Boolean);
+}

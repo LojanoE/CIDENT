@@ -77,6 +77,11 @@ export function generarPdfResumenAtencion(datos: DatosResumenAtencion): Promise<
       { titulo: "MOTIVO", texto: datos.atencion.motivo },
     );
 
+    if (datos.atencion.diagnosticos?.length) {
+      y = asegurarEspacio(doc, y, cm(3));
+      y = bloqueTexto(doc, PAGE_MARGIN_X, y, anchoUtil, "DIAGNÓSTICO (CIE-10)", datos.atencion.diagnosticos.join("\n"));
+    }
+
     y = asegurarEspacio(doc, y, cm(3));
     y = bloqueTexto(doc, PAGE_MARGIN_X, y, anchoUtil, "PROBLEMA ACTUAL", datos.atencion.problemaActual);
 

@@ -1,4 +1,4 @@
-import type { Centro, Paciente } from "@cident/shared";
+import { separarDiagnosticos, type Centro, type Paciente } from "@cident/shared";
 import {
   PAGE_MARGIN_X,
   asegurarEspacio,
@@ -57,7 +57,7 @@ export function generarPdfReceta(datos: DatosReceta): Promise<Buffer> {
     );
 
     y = asegurarEspacio(doc, y, cm(3));
-    y = bloqueTexto(doc, PAGE_MARGIN_X, y, anchoUtil, "DIAGNÓSTICO", datos.receta.diagnostico);
+    y = bloqueTexto(doc, PAGE_MARGIN_X, y, anchoUtil, "DIAGNÓSTICO", separarDiagnosticos(datos.receta.diagnostico).join("\n"));
 
     y = asegurarEspacio(doc, y, cm(3));
     y = bloqueTexto(doc, PAGE_MARGIN_X, y, anchoUtil, "MEDICAMENTOS", datos.receta.medicamentos);

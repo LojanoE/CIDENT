@@ -5,15 +5,15 @@ import { Input } from "../../components/ui";
 import { cn } from "../../lib/cn";
 
 interface Cie10CampoProps {
-  /** Diagnóstico elegido («K02.1 Caries de la dentina») o vacío. */
-  value: string;
-  onChange: (valor: string) => void;
+  /** Diagnósticos elegidos («K02.1 Caries de la dentina»). */
+  value: string[];
+  onChange: (valor: string[]) => void;
 }
 
 /**
  * Buscador de diagnósticos CIE-10: se escribe el código («K02») o palabras
- * («caries dentina») y se elige de la lista. Si no está en el catálogo, la última
- * opción deja usar lo escrito tal cual.
+ * («caries dentina») y se elige de la lista; se pueden agregar varios y quitar
+ * con la X. Si no está en el catálogo, la última opción deja usar lo escrito tal cual.
  */
 export function Cie10Campo({ value, onChange }: Cie10CampoProps) {
   const idLista = useId();
@@ -21,18 +21,22 @@ export function Cie10Campo({ value, onChange }: Cie10CampoProps) {
   const [abierto, setAbierto] = useState(false);
   const [activo, setActivo] = useState(0);
 
-  const resultados = useMemo(() => buscarCie10(texto, 8), [texto]);
+  const resultados = useMemo(
+    () => buscarCie10(texto, 8).filter((r) => !value.includes(textoCie10(r))),
+    [texto, value],
+  );
   const escrito = texto.trim();
   const opciones = useMemo(() => {
     const lista = resultados.map((r) => ({ clave: r.codigo, etiqueta: textoCie10(r), valor: textoCie10(r), libre: false }));
-    if (escrito && !lista.some((o) => o.valor.toLowerCase() === escrito.toLowerCase())) {
+    const yaElegido = value.some((v) => v.toLowerCase() === escrito.toLowerCase());
+    if (escrito && !yaElegido && !lista.some((o) => o.valor.toLowerCase() === escrito.toLowerCase())) {
       lista.push({ clave: "__libre__", etiqueta: `Usar «${escrito}» tal cual`, valor: escrito, libre: true });
     }
     return lista;
-  }, [resultados, escrito]);
+  }, [resultados, escrito, value]);
 
   const elegir = (valor: string) => {
-    onChange(valor);
+    onChange([...value, valor]);
     setTexto("");
     setAbierto(false);
     setActivo(0);
@@ -54,24 +58,31 @@ export function Cie10Campo({ value, onChange }: Cie10CampoProps) {
     }
   };
 
-  if (value) {
-    return (
-      <div className="flex min-h-touch items-center justify-between gap-2 rounded-md border border-input bg-surface px-3 text-base md:min-h-10 md:text-sm">
-        <span className="min-w-0 break-words">{value}</span>
-        <button
-          type="button"
-          aria-label="Quitar diagnóstico"
-          onClick={() => onChange("")}
-          className="flex min-h-touch min-w-touch shrink-0 items-center justify-center text-ink-soft hover:text-ink md:min-h-8 md:min-w-8"
+  const chips = value.length > 0 && (
+    <ul className="mb-2 flex flex-wrap gap-2">
+      {value.map((v) => (
+        <li
+          key={v}
+          className="flex items-center gap-1 rounded-md border border-input bg-accent-wash py-1 pl-3 pr-1 text-sm"
         >
-          <X aria-hidden className="h-4 w-4" />
-        </button>
-      </div>
-    );
-  }
+          <span className="min-w-0 break-words">{v}</span>
+          <button
+            type="button"
+            aria-label={`Quitar ${v}`}
+            onClick={() => onChange(value.filter((x) => x !== v))}
+            className="flex min-h-8 min-w-8 shrink-0 items-center justify-center rounded text-ink-soft hover:text-ink"
+          >
+            <X aria-hidden className="h-4 w-4" />
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
 
   return (
-    <div className="relative">
+    <div>
+      {chips}
+      <div className="relative">
       <Search aria-hidden className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-soft" />
       <Input
         role="combobox"
@@ -121,6 +132,7 @@ export function Cie10Campo({ value, onChange }: Cie10CampoProps) {
           ))}
         </ul>
       )}
+      </div>
     </div>
   );
 }

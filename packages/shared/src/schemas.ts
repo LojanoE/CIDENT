@@ -46,6 +46,7 @@ export const atencionSchema = z.object({
   antecedentes: z.string().trim().max(2000).default(""),
   signosVitales: z.string().trim().max(500).default(""),
   examenEstomatognatico: z.string().trim().max(2000).default(""),
+  diagnosticos: z.array(z.string().trim().min(1).max(200)).max(10).default([]),
   indicadores: indicadoresHigieneSchema,
   cpo: cpoInputSchema,
   notas: z.string().trim().max(2000).default(""),

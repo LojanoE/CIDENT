@@ -49,6 +49,15 @@ describe("textoCertificado", () => {
     expect(t.cuerpo[0]).toMatch(/diagnóstico CIE-10 K02\.1 \(Caries de la dentina\)\.$/);
   });
 
+  it("redacta varios diagnósticos", () => {
+    const t = textoCertificado({
+      paciente,
+      fechaAtencion: "2026-10-01",
+      diagnosticoCie10: "K04.0 Pulpitis; K02.1 Caries de la dentina",
+    });
+    expect(t.cuerpo[0]).toMatch(/con los diagnósticos CIE-10 K04\.0 \(Pulpitis\); K02\.1 \(Caries de la dentina\)\.$/);
+  });
+
   it("omite las frases sin datos, sin dejar huecos", () => {
     const t = textoCertificado({ paciente, fechaAtencion: "2026-10-01" });
     expect(t.cuerpo).toHaveLength(1);

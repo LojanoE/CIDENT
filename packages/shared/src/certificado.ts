@@ -63,17 +63,18 @@ export const CIERRE_CERTIFICADO = "La presente certificación se expide por soli
 /** Arma los párrafos omitiendo las frases cuyos datos están vacíos (nunca quedan huecos). */
 export function textoCertificado(d: DatosTextoCertificado): TextoCertificado {
   const nombre = `${d.paciente.nombres} ${d.paciente.apellidos}`.replace(/\s+/g, " ").trim();
-  const dx = limpiar(d.diagnosticoCie10);
+  const dx = (d.diagnosticoCie10 ?? "").split(";").map(limpiar).filter(Boolean);
   const compromiso = formatearCompromiso(d.compromiso);
   const piezas = limpiar(d.piezas);
 
   let primero =
     `Por medio del presente certifico haber atendido a ${nombre}, con cédula de identidad ${d.paciente.cedula}, ` +
     `el día ${fechaLarga(d.fechaAtencion)}, por el servicio de Consulta odontológica externa`;
-  if (dx) primero += ` con un diagnóstico CIE-10 ${conDescripcionEntreParentesis(dx)}`;
-  if (compromiso && piezas) primero += `${dx ? "," : " con"} el ${compromiso} de compromiso de la pieza dental ${piezas}`;
-  else if (piezas) primero += `${dx ? "," : " con"} compromiso de la pieza dental ${piezas}`;
-  else if (compromiso) primero += `${dx ? "," : " con"} el ${compromiso} de compromiso`;
+  if (dx.length === 1) primero += ` con un diagnóstico CIE-10 ${conDescripcionEntreParentesis(dx[0] as string)}`;
+  else if (dx.length > 1) primero += ` con los diagnósticos CIE-10 ${dx.map(conDescripcionEntreParentesis).join("; ")}`;
+  if (compromiso && piezas) primero += `${dx.length ? "," : " con"} el ${compromiso} de compromiso de la pieza dental ${piezas}`;
+  else if (piezas) primero += `${dx.length ? "," : " con"} compromiso de la pieza dental ${piezas}`;
+  else if (compromiso) primero += `${dx.length ? "," : " con"} el ${compromiso} de compromiso`;
   primero += ".";
 
   const cuerpo = [primero];
