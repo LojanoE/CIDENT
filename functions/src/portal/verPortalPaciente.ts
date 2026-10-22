@@ -12,26 +12,12 @@ import { enlaceVigente, planSinMontos, planTratamientoParaPortal, verPortalSchem
 import { getFirestore } from "firebase-admin/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { registrarAuditoria } from "../lib/auditoria.js";
+import { ahoraLocal } from "../lib/horaLocal.js";
 import { verificarLimiteIp } from "../lib/rateLimit.js";
 import { obtenerLogoBuffer } from "../pdf/logo.js";
 import { hashToken } from "./enlaces.js";
 
 const NO_VALIDO = "Enlace no válido o vencido.";
-
-/** Hora de pared local ('YYYY-MM-DDTHH:MM') en la zona del centro (Ecuador). */
-function ahoraLocal(): string {
-  return new Intl.DateTimeFormat("sv-SE", {
-    timeZone: "America/Guayaquil",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  })
-    .format(new Date())
-    .replace(" ", "T");
-}
 
 /** Callable PÚBLICA (sin sesión): devuelve un DTO mínimo, jamás montos ni datos personales sensibles. */
 export const verPortalPaciente = onCall({ region: "southamerica-east1" }, async (request) => {

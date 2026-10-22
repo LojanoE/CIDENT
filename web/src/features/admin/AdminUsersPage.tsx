@@ -9,7 +9,8 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod";
 import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
-import { UserRound } from "lucide-react";
+import { ScrollText, UserRound } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { db, functions } from "../../app/firebase";
@@ -27,6 +28,7 @@ import {
   Select,
   Sheet,
   Skeleton,
+  estiloBoton,
   useToast,
   type Columna,
 } from "../../components/ui";
@@ -113,7 +115,16 @@ export function AdminUsersPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <PageHeader title="Usuarios" description="Crea cuentas y administra los accesos de tu centro." />
+      <PageHeader
+        title="Usuarios"
+        description="Crea cuentas y administra los accesos de tu centro."
+        actions={
+          <Link to="/admin/auditoria" className={estiloBoton({ variant: "secondary" })}>
+            <ScrollText aria-hidden className="h-4 w-4" />
+            Auditoría
+          </Link>
+        }
+      />
 
       <div className="grid gap-6 lg:grid-cols-[22rem_1fr] lg:items-start">
         <CrearUsuarioForm centros={centros} />

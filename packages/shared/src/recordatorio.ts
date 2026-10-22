@@ -13,6 +13,7 @@ export const VARIABLES_RECORDATORIO = [
   { clave: "centro", ayuda: "Nombre del centro" },
   { clave: "direccion", ayuda: "Dirección del centro" },
   { clave: "telefono", ayuda: "Teléfono del centro" },
+  { clave: "enlace", ayuda: "Enlace para confirmar o cancelar la cita (se agrega solo si falta)" },
 ] as const;
 
 export type VariableRecordatorio = (typeof VARIABLES_RECORDATORIO)[number]["clave"];
@@ -54,11 +55,17 @@ export interface DatosRecordatorio {
   centro: string;
   direccion?: string;
   telefono?: string;
+  /** Enlace de confirmación de la cita; sin él, el texto sale igual que antes. */
+  enlace?: string;
 }
 
 /** Reemplaza las variables de la plantilla; una variable desconocida se deja tal cual. */
 export function armarRecordatorio(plantilla: string | undefined, datos: DatosRecordatorio): string {
-  const base = plantilla?.trim() ? plantilla : PLANTILLA_RECORDATORIO_DEFECTO;
+  let base = plantilla?.trim() ? plantilla : PLANTILLA_RECORDATORIO_DEFECTO;
+  // Las plantillas ya editadas no conocen `{enlace}`: se agrega al final solo si hay enlace.
+  if (datos.enlace && !base.includes("{enlace}")) {
+    base = `${base}\n\nConfirme o cancele su cita aquí: {enlace}`;
+  }
   const valores: Record<VariableRecordatorio, string> = {
     // Nombre tal como está en la cita: con ficha es «Apellidos Nombres», y el primer token sería el apellido.
     paciente: datos.paciente.trim(),
@@ -68,6 +75,7 @@ export function armarRecordatorio(plantilla: string | undefined, datos: DatosRec
     centro: datos.centro,
     direccion: datos.direccion ?? "",
     telefono: datos.telefono ?? "",
+    enlace: datos.enlace ?? "",
   };
   return base.replace(/\{(\w+)\}/g, (completo, clave: string) =>
     clave in valores ? valores[clave as VariableRecordatorio] : completo,

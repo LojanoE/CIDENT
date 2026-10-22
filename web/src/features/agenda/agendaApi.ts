@@ -1,6 +1,7 @@
-import type { Cita, CitaInput, EstadoCita } from "@cident/shared";
+import type { Cita, CitaInput, CitaPublicaDatos, EstadoCita } from "@cident/shared";
 import { collection, doc, getDoc, setDoc, updateDoc, type Firestore } from "firebase/firestore";
-import { db } from "../../app/firebase";
+import { httpsCallable } from "firebase/functions";
+import { db, functions } from "../../app/firebase";
 
 export function appointmentsCollection(firestore: Firestore = db) {
   return collection(firestore, "appointments");
@@ -136,3 +137,26 @@ export async function vincularCitaAAtencion(
     updatedBy: uid,
   });
 }
+
+const enlacesConfirmacionCallable = httpsCallable<{ appointmentIds: string[] }, { tokens: Record<string, string> }>(
+  functions,
+  "enlacesConfirmacionCita",
+);
+
+/** Tokens de confirmación por `appointmentId` (de a 50 por llamada, el máximo de la callable). */
+export async function obtenerTokensConfirmacion(appointmentIds: string[]): Promise<Record<string, string>> {
+  const tokens: Record<string, string> = {};
+  for (let i = 0; i < appointmentIds.length; i += 50) {
+    const { data } = await enlacesConfirmacionCallable({ appointmentIds: appointmentIds.slice(i, i + 50) });
+    Object.assign(tokens, data.tokens);
+  }
+  return tokens;
+}
+
+export const urlConfirmacionCita = (token: string) => `${window.location.origin}/c/${token}`;
+
+export const verCitaPublica = httpsCallable<{ token: string }, CitaPublicaDatos>(functions, "verCitaPublica");
+export const responderCita = httpsCallable<{ token: string; respuesta: "confirmar" | "cancelar" }, { ok: boolean }>(
+  functions,
+  "responderCita",
+);

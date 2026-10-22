@@ -38,3 +38,5 @@ export {
 export { crearEnlacePortal } from "./portal/crearEnlacePortal.js";
 export { revocarEnlacePortal } from "./portal/revocarEnlacePortal.js";
 export { verPortalPaciente } from "./portal/verPortalPaciente.js";
+export { enlacesConfirmacionCita } from "./agenda/enlacesConfirmacion.js";
+export { verCitaPublica, responderCita } from "./agenda/citaPublica.js";

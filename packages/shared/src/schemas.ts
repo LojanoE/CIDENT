@@ -381,6 +381,17 @@ export const verPortalSchema = z.object({
   token: z.string().regex(/^[A-Za-z0-9_-]{43}$/, "Enlace no válido"),
 });
 
+/** Token de cita: `appointmentId.firma` en base64url (el id de Firestore tiene 20 caracteres). */
+const tokenCitaSchema = z.string().regex(/^[A-Za-z0-9]{20}\.[A-Za-z0-9_-]{43}$/, "Enlace no válido");
+export const verCitaPublicaSchema = z.object({ token: tokenCitaSchema });
+export const responderCitaSchema = z.object({
+  token: tokenCitaSchema,
+  respuesta: z.enum(["confirmar", "cancelar"]),
+});
+export const enlacesConfirmacionSchema = z.object({
+  appointmentIds: z.array(z.string().trim().min(1)).min(1).max(50),
+});
+
 export const itemPlanSchema = z.object({
   tratamiento: z.string().trim().min(2, "Indica el tratamiento").max(120),
   pieza: z

@@ -1,34 +1,8 @@
 import { getFirestore } from "firebase-admin/firestore";
+import type { AccionAuditoria } from "@cident/shared";
 import * as logger from "firebase-functions/logger";
 
-export type AccionAuditoria =
-  | "login_exitoso"
-  | "login_fallido"
-  | "login_bloqueado"
-  | "usuario_creado"
-  | "usuario_actualizado"
-  | "password_cambiada"
-  | "centro_actualizado"
-  | "receta_generada"
-  | "certificado_generado"
-  | "consentimiento_generado"
-  | "presupuesto_generado"
-  | "pago_registrado"
-  | "pago_anulado"
-  | "gasto_registrado"
-  | "gasto_anulado"
-  | "resumen_atencion_generado"
-  | "adjunto_subido"
-  | "adjunto_etiquetado"
-  | "firma_certificado_guardado"
-  | "firma_certificado_eliminado"
-  | "firma_manuscrita_guardada"
-  | "cargo_actualizado"
-  | "atencion_eliminada"
-  | "atencion_anulada"
-  | "portal_enlace_creado"
-  | "portal_enlace_revocado"
-  | "portal_visitado";
+export type { AccionAuditoria };
 
 export interface RegistrarAuditoriaParams {
   accion: AccionAuditoria;

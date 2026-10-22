@@ -46,4 +46,18 @@ describe("armarRecordatorio", () => {
       "[][]",
     );
   });
+
+  it("agrega el enlace al final si la plantilla no lo trae", () => {
+    const texto = armarRecordatorio("Hola {paciente}", { ...datos, enlace: "https://x.test/c/abc" });
+    expect(texto).toBe("Hola María Pérez\n\nConfirme o cancele su cita aquí: https://x.test/c/abc");
+  });
+
+  it("usa el enlace donde la plantilla lo coloca, sin duplicarlo", () => {
+    const texto = armarRecordatorio("Confirme: {enlace}", { ...datos, enlace: "https://x.test/c/abc" });
+    expect(texto).toBe("Confirme: https://x.test/c/abc");
+  });
+
+  it("sin enlace el texto es idéntico al de antes", () => {
+    expect(armarRecordatorio("Hola {paciente}", datos)).toBe("Hola María Pérez");
+  });
 });

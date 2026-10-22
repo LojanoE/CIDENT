@@ -5,7 +5,7 @@ import { itemsNavegacion } from "./navegacion";
 
 /** Barra inferior móvil (< md), con objetivos de 56 px. Reemplaza los enlaces «Volver a…». */
 export function MobileTabBar({ rol }: { rol: Sesion["rol"] | undefined }) {
-  const items = itemsNavegacion(rol);
+  const items = itemsNavegacion(rol).filter((i) => !i.soloEscritorio);
   return (
     <nav
       aria-label="Principal"

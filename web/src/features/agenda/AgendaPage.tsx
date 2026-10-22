@@ -1,5 +1,5 @@
 import { fechaIsoSchema, ocupaFranja, rangoDeLaSemana, rangoDelDia, sumarDias, type Cita } from "@cident/shared";
-import { CalendarPlus, ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarPlus, ChevronLeft, ChevronRight, MessageCircle } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../app/AuthProvider";
@@ -9,6 +9,8 @@ import { cn } from "../../lib/cn";
 import { useEnLinea } from "../../lib/useEnLinea";
 import { useEsEscritorio } from "../../lib/useMediaQuery";
 import { CitaSheet, type CitaInicial } from "./CitaSheet";
+import { RecordatoriosPanel } from "./RecordatoriosPanel";
+import { useRecordatoriosPendientes } from "./recordatorios";
 import { SelectorProfesional } from "./SelectorProfesional";
 import { ListaDia, VistaDia } from "./VistaDia";
 import { VistaSemana } from "./VistaSemana";
@@ -32,6 +34,8 @@ export function AgendaPage() {
   const [dia, setDia] = useState(hoy);
   const [profesionalElegido, setProfesionalElegido] = useState<string | null>(null);
   const [sheet, setSheet] = useState<EstadoSheet | null>(null);
+  const [recordatorios, setRecordatorios] = useState(false);
+  const pendientesManana = useRecordatoriosPendientes(sesion?.centroId);
 
   // La semana existe solo en escritorio; en móvil todo es el día.
   const vista: Vista = esEscritorio ? vistaElegida : "dia";
@@ -84,10 +88,16 @@ export function AgendaPage() {
         title="Agenda"
         description="Las citas se comparten entre todos los profesionales de tu centro."
         actions={
-          <Button onClick={() => abrirNueva()} disabled={!enLinea || !profesionales || profesionales.length === 0}>
-            <CalendarPlus aria-hidden className="h-4 w-4" />
-            Nueva cita
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="secondary" onClick={() => setRecordatorios(true)}>
+              <MessageCircle aria-hidden className="h-4 w-4" />
+              Recordatorios{pendientesManana > 0 ? ` (${pendientesManana})` : ""}
+            </Button>
+            <Button onClick={() => abrirNueva()} disabled={!enLinea || !profesionales || profesionales.length === 0}>
+              <CalendarPlus aria-hidden className="h-4 w-4" />
+              Nueva cita
+            </Button>
+          </div>
         }
       />
 
@@ -215,6 +225,8 @@ export function AgendaPage() {
           onAbrir={(cita) => setSheet({ cita })}
         />
       )}
+
+      <RecordatoriosPanel open={recordatorios} onClose={() => setRecordatorios(false)} />
 
       <CitaSheet
         open={sheet !== null}

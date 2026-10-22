@@ -495,6 +495,9 @@ export interface Cita {
   /** ISO de la última vez que se abrió el recordatorio por WhatsApp (solo informativo). */
   recordatorioEnviadoAt?: string;
 
+  /** ISO de cuando el paciente confirmó desde el enlace del recordatorio. */
+  confirmadaPorPacienteAt?: string;
+
   /**
    * Autoría en el propio documento. Las citas se escriben desde el cliente
    * (el solapamiento advierte pero no bloquea, así que no hace falta una
@@ -508,6 +511,16 @@ export interface Cita {
   canceladaEn: string | null;
   canceladaPor: string | null;
   motivoCancelacion: string;
+}
+
+/** Respuesta de `verCitaPublica`: lo mínimo para que el paciente confirme o cancele. */
+export interface CitaPublicaDatos {
+  centro: { nombre: string; telefono: string; direccion: string; logoDataUrl: string | null };
+  inicio: string;
+  profesionalNombre: string;
+  estado: EstadoCita;
+  /** `false` si la cita ya pasó o ya está cancelada/atendida/ausente. */
+  puedeResponder: boolean;
 }
 
 // ---------------------------------------------------------------------------

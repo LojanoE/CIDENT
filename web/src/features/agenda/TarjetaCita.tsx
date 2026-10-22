@@ -1,5 +1,5 @@
 import { horaDe, type Cita, type EstadoCita } from "@cident/shared";
-import { MessageCircleCheck } from "lucide-react";
+import { CheckCircle2, MessageCircleCheck } from "lucide-react";
 import { Badge, type TonoBadge } from "../../components/ui";
 import { cn } from "../../lib/cn";
 import { ETIQUETA_ESTADO } from "./estados";
@@ -39,6 +39,9 @@ export function TarjetaCita({ cita, onClick, mostrarProfesional = false, classNa
       </span>
       <span className={cn("mt-1 flex items-center gap-1.5 text-sm font-medium", cita.estado === "cancelada" && "line-through")}>
         {cita.pacienteNombre}
+        {cita.confirmadaPorPacienteAt && (
+          <CheckCircle2 aria-label="Confirmada por el paciente" className="h-3.5 w-3.5 shrink-0 text-ok" />
+        )}
         {cita.recordatorioEnviadoAt && (
           <MessageCircleCheck aria-label="Recordatorio enviado" className="h-3.5 w-3.5 shrink-0 text-ok" />
         )}

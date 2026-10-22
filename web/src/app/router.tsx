@@ -26,6 +26,13 @@ export const router = createBrowserRouter([
     }),
   },
   {
+    // Pública: el paciente confirma o cancela su cita desde el enlace del recordatorio.
+    path: "/c/:token",
+    lazy: async () => ({
+      Component: (await import("../features/agenda/ConfirmarCitaPage")).ConfirmarCitaPage,
+    }),
+  },
+  {
     path: "/",
     element: (
       <ProtectedRoute>
@@ -129,6 +136,12 @@ export const router = createBrowserRouter([
             index: true,
             lazy: async () => ({
               Component: (await import("../features/admin/AdminUsersPage")).AdminUsersPage,
+            }),
+          },
+          {
+            path: "auditoria",
+            lazy: async () => ({
+              Component: (await import("../features/admin/AuditoriaPage")).AuditoriaPage,
             }),
           },
           {

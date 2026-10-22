@@ -1,4 +1,4 @@
-import { Building2, CalendarDays, Home, PenLine, ShieldCheck, Users, Wallet, type LucideIcon } from "lucide-react";
+import { Building2, CalendarDays, Home, PenLine, ScrollText, ShieldCheck, Users, Wallet, type LucideIcon } from "lucide-react";
 import type { Sesion } from "../../app/AuthProvider";
 
 export interface ItemNavegacion {
@@ -7,6 +7,8 @@ export interface ItemNavegacion {
   icon: LucideIcon;
   /** Coincidencia exacta: evita que «Inicio» o «Administración» queden activos en sus rutas hijas. */
   end?: boolean;
+  /** Fuera de la barra inferior móvil, que ya está llena; en móvil se llega desde la pantalla de administración. */
+  soloEscritorio?: boolean;
 }
 
 /** Única fuente de la navegación: la consumen el sidebar de escritorio y la barra inferior móvil. */
@@ -22,6 +24,7 @@ export function itemsNavegacion(rol: Sesion["rol"] | undefined): ItemNavegacion[
     base.push(
       { to: "/admin", label: "Administración", icon: ShieldCheck, end: true },
       { to: "/admin/centros", label: "Centros", icon: Building2 },
+      { to: "/admin/auditoria", label: "Auditoría", icon: ScrollText, soloEscritorio: true },
     );
   }
   return base;
